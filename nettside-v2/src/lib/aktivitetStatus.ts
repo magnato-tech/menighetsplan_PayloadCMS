@@ -51,7 +51,7 @@ export function grupperPerManed(aktiviteter: Aktiviteter[]): Record<string, Akti
 }
 
 function formaterManedAr(iso: string): string {
-  const maaned = new Date(iso).toLocaleString('nb-NO', { month: 'long', year: 'numeric' })
+  const maaned = new Date(iso).toLocaleString('nb-NO', { timeZone: 'Europe/Oslo', month: 'long', year: 'numeric' })
   return maaned.charAt(0).toUpperCase() + maaned.slice(1)
 }
 

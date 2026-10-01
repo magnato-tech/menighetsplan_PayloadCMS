@@ -661,3 +661,99 @@ body {
   left: auto;
   right: 0;
 }
+
+/* ---------- Admin-oversikt: arrangement og bemanning ---------- */
+.adm { max-width: 860px; }
+.adm h1 { margin: 0.3rem 0 0.4rem; }
+.adm-brodsmule { font-size: 0.9rem; margin: 0 0 0.5rem; }
+.adm-melding { background: #e8f5ee; border: 1px solid #b7dfc8; color: #1d5c3a; padding: 0.6rem 0.9rem; border-radius: 8px; }
+.adm-topp { margin-bottom: 0.8rem; }
+.adm-meta { color: #5b6770; margin: 0.15rem 0; }
+.adm-seksjon { font-size: 0.95rem; letter-spacing: 0.04em; text-transform: uppercase; color: #5b6770; margin: 1.4rem 0 0.6rem; }
+.adm-tom { color: #5b6770; }
+.adm-hjelp { color: #6b7780; font-size: 0.85rem; margin: 0.3rem 0 0; }
+.adm-etikett { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; color: #6b7780; margin: 0; }
+
+.pille { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; border: 1px solid transparent; }
+.pille-ok { background: #e6f5ec; color: #17653f; border-color: #b7dfc8; }
+.pille-venter { background: #fff4d6; color: #7a5a00; border-color: #f0dc9a; }
+.pille-mangler { background: #fde9e7; color: #a12a20; border-color: #f1c1bc; }
+.pille-forfall { background: #fde0cf; color: #9a3a00; border-color: #f1b894; }
+.pille-nei { background: #eef0f2; color: #6b7780; border-color: #d9dde1; }
+.pille-info { background: #eaeefb; color: #2f3f9e; border-color: #c9d1f3; }
+.pille-gruppe { background: #f1ecfb; color: #5a2fa0; border-color: #d9cdf2; white-space: nowrap; }
+
+.adm-dekning { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.9rem 1.1rem; border-radius: 12px; border: 1px solid; margin: 0.8rem 0; }
+.adm-dekning-ok { background: #e6f5ec; border-color: #b7dfc8; color: #17653f; }
+.adm-dekning-mangler { background: #fff4d6; border-color: #f0dc9a; color: #7a5a00; }
+.adm-dekning-forfall { background: #fde9e7; border-color: #f1c1bc; color: #a12a20; }
+.adm-dekning-ingen { background: #eef0f2; border-color: #d9dde1; color: #5b6770; }
+.adm-dekning-tall { font-weight: 700; background: rgba(255, 255, 255, 0.7); border-radius: 999px; padding: 0.1rem 0.7rem; }
+
+.adm-faner { display: flex; gap: 0.4rem; background: #eef0f2; border-radius: 12px; padding: 0.3rem; margin: 1rem 0 0.6rem; }
+.adm-fane { flex: 1; text-align: center; padding: 0.5rem; border-radius: 9px; text-decoration: none; color: #3f4a52; font-weight: 600; }
+.adm-fane.aktiv { background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12); }
+.adm-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin-bottom: 0.4rem; }
+
+.adm-kort { display: block; background: #fff; border: 1px solid #e1e5e8; border-radius: 12px; padding: 0.9rem 1rem; margin: 0.6rem 0; color: inherit; text-decoration: none; }
+.adm-kort-lenke:hover { border-color: #aab6c0; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); }
+.adm-kort-topp { display: flex; align-items: flex-start; gap: 0.7rem; }
+.adm-kort-tittel { flex: 1; min-width: 0; }
+.adm-kort-tittel p { margin: 0.2rem 0 0; color: #5b6770; font-size: 0.9rem; }
+.adm-rolle { color: #5b6770; }
+.adm-tid { background: #eef0f2; border-radius: 8px; padding: 0.2rem 0.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.adm-oppgave { margin-top: 0.7rem; padding-top: 0.7rem; border-top: 1px solid #eceff1; }
+.adm-ansvarlig { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+.adm-behov { color: #6b7780; font-size: 0.82rem; margin-left: auto; }
+.adm-handlinger { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.6rem; align-items: flex-start; }
+.adm-inline { display: inline; margin: 0; }
+.adm-x { background: transparent; border: 0; cursor: pointer; font-size: 1rem; line-height: 1; color: inherit; padding: 0 0 0 0.2rem; }
+.adm-instruks { margin: 0.4rem 0; white-space: pre-wrap; }
+
+.adm-detaljer { background: #f6f8f9; border: 1px solid #e1e5e8; border-radius: 10px; padding: 0.4rem 0.8rem; }
+.adm-detaljer > summary { cursor: pointer; font-weight: 600; color: #2f3f9e; padding: 0.2rem 0; }
+.adm-stor { margin: 0.6rem 0; background: #fff; }
+.adm-fare > summary { color: #a12a20; }
+.adm-skjema { display: flex; flex-direction: column; gap: 0.6rem; padding: 0.5rem 0; }
+.adm-skjema label { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.85rem; font-weight: 600; color: #3f4a52; }
+.adm-skjema input:not([type='checkbox']), .adm-skjema select, .adm-skjema textarea { padding: 0.5rem 0.6rem; border: 1px solid #c8d0d6; border-radius: 8px; font: inherit; background: #fff; }
+.adm-skjema button, .adm-velger button { background: #4f46e5; color: #fff; border: 0; border-radius: 8px; padding: 0.55rem 1rem; font: inherit; font-weight: 600; cursor: pointer; }
+.adm-rutenett { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem 0.8rem; }
+.adm-bred { grid-column: 1 / -1; }
+.adm-avkryss { flex-direction: row !important; align-items: center; gap: 0.4rem !important; font-weight: 500 !important; }
+.adm-fareknapp { background: #c0392b !important; }
+
+.adm-velger { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.5rem 0; min-width: min(420px, 80vw); }
+.adm-sok { padding: 0.6rem 0.8rem; border: 1px solid #c8d0d6; border-radius: 10px; font: inherit; }
+.adm-personliste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; max-height: 320px; overflow-y: auto; }
+.adm-personrad { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; background: #fff; border: 1px solid #e1e5e8; border-radius: 10px; padding: 0.5rem 0.7rem; }
+.adm-personinfo { display: flex; flex-direction: column; min-width: 0; }
+.adm-personinfo small { color: #6b7780; overflow: hidden; text-overflow: ellipsis; }
+.adm-personknapper { display: flex; gap: 0.4rem; flex-shrink: 0; }
+.adm-velger .adm-tildel { background: #0f9d58; }
+.adm-velger .adm-forespor { background: #e3e8ec; color: #2b353d; }
+
+@media (max-width: 560px) {
+  .adm-rutenett { grid-template-columns: 1fr; }
+  .adm-kort-topp { flex-wrap: wrap; }
+  .adm-behov { margin-left: 0; width: 100%; }
+}
+
+/* ---------- Admin-oversikt: oppfølging, tellere, hurtigoversikt ---------- */
+.adm-kort-rod { border-color: #f1b6b0; background: #fffafa; }
+.adm-grip { background: #d92d20; border-color: #d92d20; }
+.adm-grip > summary { color: #fff; }
+.adm-grip[open] { background: #fff5f4; border-color: #f1b6b0; }
+.adm-grip[open] > summary { color: #a12a20; }
+.adm-teller { display: inline-block; margin-left: 0.4rem; min-width: 1.3rem; padding: 0 0.4rem; border-radius: 999px; background: #fde0dd; color: #a12a20; font-size: 0.78rem; font-weight: 700; }
+.adm-seksjonsrad { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
+.adm-viser { color: #6b7780; font-size: 0.82rem; white-space: nowrap; }
+.adm-tittellenke { color: inherit; text-decoration: none; }
+.adm-tittellenke:hover { text-decoration: underline; }
+.adm-apne { align-self: flex-start; padding: 0.25rem 0.7rem; border-radius: 8px; background: #eaeefb; color: #2f3f9e; text-decoration: none; font-weight: 600; font-size: 0.85rem; white-space: nowrap; }
+.adm-oppgaveliste { margin-top: 0.7rem; padding-top: 0.6rem; border-top: 1px solid #eceff1; display: flex; flex-direction: column; gap: 0.35rem; }
+.adm-oppgaverad { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; font-size: 0.92rem; }
+.adm-oppgaverad-hoyre { display: inline-flex; align-items: center; gap: 0.6rem; }
+.adm-kortlenke { color: #2f3f9e; font-size: 0.82rem; text-decoration: none; white-space: nowrap; }
+.adm-kortlenke:hover { text-decoration: underline; }

@@ -2,18 +2,19 @@ import { getPayload } from 'payload'
 import config from '@/payload.config'
 import { filtrerMineGrupper, finnLedetGrupper, finnRolleIGruppe, erGruppeleder as erGruppelederAvNoen } from '@/lib/gruppeLogikk'
 import { statusForAktivitet } from '@/lib/aktivitetStatus'
-import { taOppgave, meldForfall, svarInnkalling } from '@/lib/handlinger'
+import { taOppgave, meldForfall, svarInnkalling, svarTildeling } from '@/lib/handlinger'
 import '../styles.css'
 
 function fmtDatoKort(iso: string) {
   return new Date(iso).toLocaleDateString('nb-NO', {
+    timeZone: 'Europe/Oslo',
     weekday: 'short',
     day: 'numeric',
     month: 'short',
   })
 }
 function fmtDatoLang(iso: string) {
-  return new Date(iso).toLocaleDateString('nb-NO', { weekday: 'long', day: 'numeric', month: 'long' })
+  return new Date(iso).toLocaleDateString('nb-NO', { timeZone: 'Europe/Oslo', weekday: 'long', day: 'numeric', month: 'long' })
 }
 
 type Fane = 'medlem' | 'gruppeleder' | 'admin'
@@ -227,6 +228,15 @@ export default async function MinSidePage({
                             </p>
                           )}
                         </div>
+                        <form action={svarTildeling} style={{ margin: 0, display: 'flex', gap: '0.4rem' }}>
+                          <input type="hidden" name="tildelingId" value={h.tildeling.id} />
+                          <button type="submit" name="status" value="confirmed">
+                            Ja, jeg tar den
+                          </button>
+                          <button type="submit" name="status" value="declined" className="forfall">
+                            Nei
+                          </button>
+                        </form>
                       </div>
                     )
                   } else {

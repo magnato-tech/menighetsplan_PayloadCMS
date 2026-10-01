@@ -87,7 +87,10 @@ export default async function Nav() {
                 <Link href="/min-side?fane=gruppeleder">Gruppeleder</Link>
               </li>
               <li>
-                <a href="/admin">Admin</a>
+                <Link href="/admin-oversikt">Arrangementer (admin)</Link>
+              </li>
+              <li>
+                <a href="/admin">Payload-admin</a>
               </li>
             </ul>
           </div>

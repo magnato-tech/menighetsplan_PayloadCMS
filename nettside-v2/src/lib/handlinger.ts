@@ -2,6 +2,7 @@
 import { getPayload } from 'payload'
 import config from '@/payload.config'
 import { revalidatePath } from 'next/cache'
+import { oppdaterOppgaveStatus } from '@/lib/oppgaveStatus'
 
 export async function taOppgave(formData: FormData) {
   const oppgaveId = Number(formData.get('oppgaveId'))
@@ -100,6 +101,24 @@ export async function svarInnkalling(formData: FormData) {
   }
 
   revalidatePath('/min-side')
+}
+
+/** Svar på en oppgave admin har forespurt: «ja» bekrefter, «nei» avslår. Oppgavestatus oppdateres ut fra tildelingene. */
+export async function svarTildeling(formData: FormData) {
+  const tildelingId = Number(formData.get('tildelingId'))
+  const svar = formData.get('status') === 'confirmed' ? 'confirmed' : 'declined'
+  if (!tildelingId) return
+
+  const payloadConfig = await config
+  const payload = await getPayload({ config: payloadConfig })
+
+  const tildeling = await payload.findByID({ collection: 'tildelinger', id: tildelingId, depth: 0, overrideAccess: true })
+  await payload.update({ collection: 'tildelinger', id: tildelingId, data: { svar }, overrideAccess: true })
+  const oppgaveId = typeof tildeling.oppgave === 'number' ? tildeling.oppgave : tildeling.oppgave.id
+  await oppdaterOppgaveStatus(payload, oppgaveId)
+
+  revalidatePath('/min-side')
+  revalidatePath('/admin-oversikt')
 }
 
 export async function sendMelding(formData: FormData) {
