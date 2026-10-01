@@ -651,3 +651,13 @@ body {
 .kalender-abonner-lenke:hover {
   background: #163a4a;
 }
+
+/* «Logg inn»-menyen: ligger ytterst til høyre, så nedtrekket justeres mot høyre kant. */
+.logg-inn-boks {
+  margin-left: auto;
+}
+
+.logg-inn-boks .undermeny {
+  left: auto;
+  right: 0;
+}

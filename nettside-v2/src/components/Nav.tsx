@@ -75,9 +75,22 @@ export default async function Nav() {
               )
             }
           })}
-          <Link href="/logg-inn" className="logg-inn">
-            Logg inn
-          </Link>
+          <div className="meny-punkt-med-undermeny logg-inn-boks">
+            <Link href="/logg-inn" className="logg-inn">
+              Logg inn
+            </Link>
+            <ul className="undermeny">
+              <li>
+                <Link href="/min-side">Min side</Link>
+              </li>
+              <li>
+                <Link href="/min-side?fane=gruppeleder">Gruppeleder</Link>
+              </li>
+              <li>
+                <a href="/admin">Admin</a>
+              </li>
+            </ul>
+          </div>
         </nav>
       </div>
     </header>
