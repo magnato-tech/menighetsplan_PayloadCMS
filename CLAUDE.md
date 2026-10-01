@@ -1,44 +1,46 @@
-# Menighets-CMS / Menighetsplan (Lillesand Misjonskirke)
+# Menighetsplan Payload CMS (Lillesand Misjonskirke)
 
-Kort prosjektinstruks. Hold denne filen under ca. 5 KB. Historikk ligger i `arkiv/CLAUDE-historikk.md` og skal ikke leses med mindre noen ber om det.
+Kort prosjektinstruks for denne repoen. Hold filen under ca. 5 KB. Historikk ligger i `arkiv/CLAUDE-historikk.md` og skal ikke leses med mindre noen ber om det.
 
-## Mål
+## Hva dette er
 
-Ett nettsted og én app for menigheten: offentlige sider og nyheter, innlogget «Min side», grupper, oppgaver, chat og en enkel admin for innhold. Skal erstatte eRedaktør. Drift skal koste 0 kr så lenge det lar seg gjøre. Product Owner (PO) er Magnar. Claude er produktsjef.
+Payload-versjonen av nettsted, Min side og admin for menigheten. Den er **tatt vare på** som et ferdig alternativ. Et Firebase-spor utvikles i repoet `magnato-tech/menighetsplan_ClaudeCMS`. Dette repoet bruker **ikke** Firebase.
 
-## Målarkitektur (under godkjenning)
+Product Owner (PO) er Magnar. Claude er produktsjef. PO er ikke utvikler: forklar kort og uten sjargong.
 
-Next.js + Firestore + Firebase Auth + Firebase Storage. Admin for sider og nyheter bygges enten med FireCMS Community eller eget panel (avgjøres etter en liten test). Ingen Payload, ingen Postgres, ingen betalt CMS-lisens (FireCMS PRO er avvist).
+## Teknikk
 
-Fullstendig design, datamodell, roller, Security Rules og tester: **`DESIGN-firebase-sikkerhet-og-datamodell.md`**. Les den før du foreslår eller endrer noe om data, roller eller sikkerhet.
+- Next.js 16 + Payload 3.90 + React 19, i `nettside-v2/`.
+- Database: lokal SQLite (`nettside-v2/data/nettside.db`) som standard, Postgres hvis `DATABASE_URL` er `postgres://…`. Valget gjøres i `nettside-v2/src/payload.config.ts`.
+- Start: `npm start` i roten (`scripts/start-v2.mjs` installerer, seeder, bygger og starter på port 3000).
+- Samlinger: Sider (7 blokktyper, utkast/publisering), Nyheter, Aktiviteter, Grupper, Oppgaver, Tildelinger, Oppmoter, GruppeMeldinger, Media, Users. Global: Forsideinnstillinger.
+- Ren logikk i `nettside-v2/src/lib/`: `aktivitetStatus`, `gruppeLogikk`, `handlinger`, `ical`.
+- Den gamle MVP-en i roten (`server.js`, `lib/`, `data/`, `innhold/`, `test/`) er forlatt. Ikke bygg videre på den.
 
 ## Status
 
-- Appen `Menighetsplan2.0_mobil` (Vite + React + Firestore) bruker bare mockdata. Ingen auth, og Security Rules er åpne (`if true`). **Ikke legg inn ekte medlemsdata før innlogging og regler er på plass.**
-- `nettside-v2/` (Next.js + Payload + Postgres) og MVP-en i repo-roten (`server.js`, `lib/`, `data/`, `innhold/`, `test/`) er forlatt. De brukes som spesifikasjon og kilde til gjenbruk, ikke som mål.
-- **Regler og tester:** `firebase-regler/` (`firestore.rules`, `storage.rules`, 144 regeltester, 40 logikktester). Kjør med `npm run test:rules` (krever Java 21 og kort temp-sti, se README der). Utkast, men testet mot emulator.
-- Kan gjenbrukes: felter og blokker fra `nettside-v2/src/collections/` (7 blokker i `Sider`), `src/lib/gruppeLogikk.ts`, `aktivitetStatus.ts`, `handlinger.ts`, `ical.ts`, og testene for dem.
+Fungerer og er verifisert å kjøre fra scratch (installere, seede, bygge, starte, alle sider svarer). Funksjonsomfanget står i `README.md`.
+
+Kjente svakheter, ikke rettet:
+- Ingen ekte innlogging. `/min-side` bruker `?som=` og er åpen for alle. `/logg-inn` er en plassholder.
+- Alle samlinger har `read: () => true`.
+- `handlinger.ts` tar `personId` fra skjemaet, ikke fra innloggingen. Hvem som helst kan handle på vegne av andre.
+- `taOppgave` setter oppgaven til bekreftet etter én tildeling, selv om flere trengs. `statusForAktivitet` viser «Forfall» for alltid etter en tilbaketrekking.
+- `npm run build` i `nettside-v2/` er ødelagt. Bruk `npx next build`.
 
 ## Arbeidsregler
 
-1. **Ikke bygg nye funksjoner før målarkitekturen er godkjent.** Security Rules og 144 regeltester er skrevet og grønne i `firebase-regler/` (utkast, ikke prøvd mot ekte Firebase). Neste steg er Firebase Auth + server-rute som setter claims (`role`, `pid`) med Admin SDK, med tester.
-2. Security Rules er sikkerhetsgrensen. UI kan aldri være eneste beskyttelse.
-3. Roller settes bare på serveren (Admin SDK, custom claims). Leder er per gruppe, ikke global.
-4. Server-side rendering med Admin SDK omgår reglene: serveren må selv filtrere på publisert status og aldri returnere `private/`-data.
-5. Mobil, e-post og fødselsdato ligger i egne, strengt beskyttede dokumenter. Menighetstilhørighet er særlig kategori personopplysninger (GDPR art. 9).
-6. Ingen eksisterende data slettes eller migreres før strategien er verifisert.
-7. Påstander om priser og vilkår (Firebase, Render, Neon, m.fl.) skal verifiseres mot kilden og merkes «ikke verifisert» hvis de ikke er det. Målet er 0 kr, så si fra før noe som krever kort eller abonnement.
-8. Verifiser før du rapporterer: kjør `tsc --noEmit` og testene, og se på resultatet. Ikke bruk `as any` som snarvei.
-9. Test aldri med ekte personopplysninger. Ryd bort testdata etter bruk.
-10. Les bare filene oppgaven trenger. Ikke start agenter for små ting.
+1. Bruk bare mockdata. **Ingen ekte medlemsdata** før innlogging og tilgangsregler er på plass (menighetstilhørighet er særlig kategori personopplysninger, GDPR art. 9).
+2. Hent fra GitHub (`git fetch`) før du endrer og før du pusher. Sjekk at det ikke finnes nye commits.
+3. Verifiser før du rapporterer: kjør `npx tsc --noEmit` og se på siden. Ikke bruk `as any` som snarvei.
+4. Oppgi aldri passord eller nøkler i svar eller filer. Hemmeligheter skal i miljøvariabler (`PAYLOAD_SECRET`, `DATABASE_URL`), ikke i git.
+5. Påstander om priser og vilkår skal verifiseres mot kilden eller merkes «ikke verifisert».
+6. Les bare filene oppgaven trenger.
 
 ## Praktisk (Windows, PO sin maskin)
 
-- Node og npm er installert. `gh` og `git` ligger ikke i PATH. GitHub Desktop har git: `%LOCALAPPDATA%\GitHubDesktop\app-*\resources\app\git\cmd\git.exe`.
-- Stier i Claude-arbeidsmappen er for lange for git. Bruk en kort `subst`-stasjon, eller last ned som zip.
-- Claude kan ikke skrive til GitHub. Endrede filer leveres til PO, som laster dem opp (Add file → Create new file, eller Edit).
-- Hold denne filen og `DESIGN-...md` oppdatert ved hver beslutning. Start nye samtaler med disse to som overlevering.
-
-## Åpne beslutninger
-
-FireCMS eller eget admin (test FireCMS mot `pages` først) · MFA-faktor og kostnad · Firebase Storage/Blaze og budsjettgrense · hosting (ikke valgt) · datoer i seed-data (bør være relative) · meldingsretensjon. Se punkt 10 i designdokumentet.
+- Node og npm er installert. `git` og `gh` ligger ikke i PATH. GitHub Desktop har git: `%LOCALAPPDATA%\GitHubDesktop\app-*\resources\app\git\cmd\git.exe`.
+- Push virker med `git -c credential.helper=manager push …` (Git Credential Manager har PO sin innlogging).
+- Klon til en kort sti (for eksempel `C:\mp\…`). Stiene i Claudes arbeidsmappe er for lange for git.
+- Claude kan ikke opprette GitHub-repoer. PO oppretter dem, Claude pusher.
+- Gjør alle endringer på `master` først etter at PO har bedt om det.

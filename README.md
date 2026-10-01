@@ -1,75 +1,52 @@
-# Lillesand Misjonskirke – CMS
+# Menighetsplan Payload CMS (Lillesand Misjonskirke)
 
-Egen modul – den nye offentlige nettsiden (skal erstatte eRedaktør). Eneste integrasjon er **Menighetsplan 2.0** via API (se `INTEGRASJON-MENIGHETSPLAN.md`). Foreløpig vises rådataene på en enkel side.
+Nettside, «Min side» og admin for Lillesand Misjonskirke, bygget med **Next.js og Payload CMS**. Dette er **Payload-versjonen**. Den er tatt vare på som den var 1. oktober 2026, mens et alternativ på Firebase utvikles i repoet `menighetsplan_ClaudeCMS`.
 
-Til Menighetsplan har endepunktet, bruker CMS-et en innebygd mock av API-et.
+## Hva den gjør
 
-## Slik starter du (Windows)
+- **Offentlig nettsted:** forside med hero og «Aktuelt», nestet meny, faste sider med blokker (tekst, bilde, Facebook, video, hero, kalender, kolonner), nyheter.
+- **Kalender:** `/kalender` med arrangementer gruppert per måned, og en abonnerbar `.ics`-feed (`/kalender.ics`).
+- **Min side:** `/min-side` med innkallinger (Kommer / Kan ikke), oppgaver, forfall-melding og gruppesider med chat. Faner for medlem, gruppeleder og admin.
+- **Admin:** Payloads adminpanel på `/admin`, med dashboard, utkast/publisering på sider og nyheter, og grupperte samlinger.
 
-1. **Installer Node.js** (én gang): last ned «LTS» fra <https://nodejs.org> og installer med standardvalg.
-2. Åpne mappen `CMS system` i Filutforsker, klikk i adressefeltet, skriv `cmd` og trykk Enter.
-3. Skriv:
-   ```
-   npm start
-   ```
-4. Åpne <http://localhost:3000> i nettleseren.
+## Start
 
-Stopp serveren med `Ctrl + C` i det svarte vinduet.
-
-Det trengs **ikke** `npm install` – prosjektet har ingen eksterne pakker.
-
-## Koble til appen
-
-Standard er en innebygd mock av API-et. Menighetsplan-appen (via GAIS) har nå et ekte,
-offentlig API-endepunkt på Google Cloud Run. Sett miljøvariabelen for å bruke det:
+Krever Node 20.9 eller nyere.
 
 ```
-set MENIGHETSPLAN_API_URL=https://ais-dev-bpwtuilescw22tmh5zztaw-138177352715.europe-west3.run.app/api/offentlig/arrangementer
 npm start
 ```
 
-Endepunktet krever ingen nøkkel/innlogging, filtrerer offentlig/internt server-side
-(kun offentlige arrangementer sendes ut), og har 5 minutters caching (`Cache-Control`).
-Merk: dette er en dev-sandbox på Cloud Run og kan få en «kald start» (litt treg første
-respons) etter lang inaktivitet – appens cache-i-fil-fallback (`innhold/cache/siste-vellykkede.json`)
-tar seg av dette hvis kallet skulle feile eller time ut.
+Første start gjør alt selv: installerer avhengigheter, lager en lokal SQLite-database (`nettside-v2/data/nettside.db`), fyller den med mockdata, bygger appen og starter den på <http://localhost:3000>. Senere starter er raske. Den gamle MVP-en i rotmappen startes med `npm run start:mvp`.
 
-| Variabel | Standard | Betydning |
-|---|---|---|
-| `MENIGHETSPLAN_API_URL` | innebygd mock | Adressen til appens offentlige API |
-| `PORT` | `3000` | Hvilken port siden kjører på |
-| `REFRESH_MINUTES` | `15` | Hvor ofte appen spørres på nytt |
+Innloggingene til admin og et gruppeleder-eksempel skrives ut av seeding i konsollen. De er **kun demodata**.
 
-## Test
+### Egen database
 
-```
-npm test
-```
+Sett `DATABASE_URL` til en Postgres-adresse (`postgres://…`) for å bruke Postgres i stedet for SQLite. Sett også `PAYLOAD_SECRET` i ekte drift. Uten den brukes en demo-reserveverdi som ikke skal brukes utenfor demo.
 
-Testene sjekker kontrakten mot Menighetsplan: tidssone og sommertid, avlyste arrangementer, manglende felt og at feil format eller ny versjon gir en tydelig feilmelding.
+## Oppbygging
 
-## Kodestruktur
-
-CMS-et er modulær og kan vokse uten omskriving:
-
-- **`lib/arrangementer.js`** – Henting og caching av arrangementer fra Menighetsplan-API
-- **`lib/innhold/lager.js`** – Grensesnitt for lagring av sider (filbasert, senere bytbar mot database)
-- **`lib/visning/felles.js`** – HTML-layout, escapering og formattering av datoer
-- **`lib/visning/blokker.js`** – Register over blokktyper og rendering av innhold
-- **`lib/visning/forside.js`** – Forsiden med arrangementer
-- **`lib/visning/side.js`** – Visning av faste sider
-- **`lib/visning/debug.js`** – Debug-side med rådata
-- **`innhold/sider/`** – JSON-filer for hver fast side (én fil per slug)
-
-Sider er helt separate fra arrangementer og bruker samme HTML-layout. For å legge til en ny blokktype: åpne `lib/visning/blokker.js`, legg til en renderer-funksjon og registrer den i `blokker`-objektet.
-
-## Innhold
-
-| Fil | Hva |
+| Mappe | Innhold |
 |---|---|
-| `server.js` | Webserveren og rådata-siden |
-| `lib/kilder/menighetsplan.js` | Adapter for Menighetsplan-API (eneste sted som kjenner appen) |
-| `data/menighetsplan-mock.json` | Eksempelsvar fra Menighetsplan-API (kontrakt v1) |
-| `public/logo.svg` | Foreløpig logo |
-| `ARKITEKTUR.md` | Teknisk forslag fra Sprint 0 |
-| `INTEGRASJON-MENIGHETSPLAN.md` | API-kontrakten mot Menighetsplan |
+| `nettside-v2/` | Den gjeldende appen: Next.js 16, Payload 3.90, React 19 |
+| `nettside-v2/src/collections/` | Sider, Nyheter, Aktiviteter, Grupper, Oppgaver, Tildelinger, Oppmoter, GruppeMeldinger, Media, Users |
+| `nettside-v2/src/lib/` | Ren logikk: `aktivitetStatus`, `gruppeLogikk`, `handlinger`, `ical` |
+| `nettside-v2/src/seed/` | Mockdata |
+| `scripts/start-v2.mjs` | Startskriptet bak `npm start` |
+| `server.js`, `lib/`, `data/`, `innhold/`, `public/`, `test/` | Den **forlatte** MVP-en (Node uten avhengigheter). Urørt |
+| `arkiv/CLAUDE-historikk.md` | Hele den gamle prosjekthistorikken (Sprint 0–13 og Payload-oppstarten) |
+| `ARKITEKTUR.md`, `INTEGRASJON-MENIGHETSPLAN.md` | MVP-dokumenter om integrasjonen med Menighetsplan-appen |
+
+## Kjente begrensninger
+
+- **Ingen ekte innlogging.** `/min-side` er en visningsmodell: «Vis som» velger en person, og hvem som helst kan se hvem som helst sin side. `/logg-inn` er en plassholder. **Ikke bruk ekte persondata.**
+- **Alle samlinger er lesbare for alle** via API-et (`read: () => true`).
+- `npm run build` i `nettside-v2/` er ødelagt (`payload build` finnes ikke). Bruk `npx next build`. `npm start` i roten gjør dette riktig.
+- Bilder lagres på lokal disk (`nettside-v2/media/`). Det forsvinner ved ny deploy uten persistent disk.
+- Seed-datoene er relative til dagen seeding kjøres.
+- Vitest-testene i `nettside-v2/tests/` er ikke kjørt etter siste omlegging.
+
+## Backup og opphav
+
+Denne versjonen tilsvarer branchen `payload-versjon` i `magnato-tech/menighetsplan_ClaudeCMS`. Taggen `payload-original-11bbf18` er den siste Payload-committen før SQLite-endringene (bruker Postgres).
