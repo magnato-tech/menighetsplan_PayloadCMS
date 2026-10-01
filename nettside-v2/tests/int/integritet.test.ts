@@ -8,12 +8,19 @@ import path from 'node:path'
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import type { Payload } from 'payload'
 
+const POSTGRES = process.env.TEST_DATABASE_URL && /^postgres(ql)?:\/\//.test(process.env.TEST_DATABASE_URL) ? process.env.TEST_DATABASE_URL : ''
 const DB_FIL = path.resolve(process.cwd(), 'data', 'test-integritet.db')
-process.env.SQLITE_URL = `file:${DB_FIL.replace(/\\/g, '/')}`
-process.env.DATABASE_URL = ''
-fs.mkdirSync(path.dirname(DB_FIL), { recursive: true })
-for (const ende of ['', '-shm', '-wal', '-journal']) fs.rmSync(DB_FIL + ende, { force: true })
-
+if (POSTGRES) {
+  process.env.DATABASE_URL = POSTGRES
+  delete process.env.SQLITE_URL
+} else {
+  process.env.SQLITE_URL = `file:${DB_FIL.replace(/\\/g, '/')}`
+  process.env.DATABASE_URL = ''
+  fs.mkdirSync(path.dirname(DB_FIL), { recursive: true })
+  for (const ende of ['', '-shm', '-wal', '-journal']) fs.rmSync(DB_FIL + ende, { force: true })
+}
+const KJORING = Date.now().toString(36)
+const opprettet = { users: [] as number[], grupper: [] as number[], aktiviteter: [] as number[] }
 let payload: Payload
 let mediaId: number
 
@@ -35,18 +42,22 @@ beforeAll(async () => {
 }, 120000)
 
 afterAll(async () => {
-  await payload.delete({ collection: 'media', id: mediaId, overrideAccess: true }).catch(() => {})
-  for (const ende of ['', '-shm', '-wal', '-journal']) {
+  // Rydd bort det testene la igjen (rekkefølgen følger relasjonene). Best mulig.
+  const prov = async (f: () => Promise<unknown>) => {
     try {
-      fs.rmSync(DB_FIL + ende, { force: true })
+      await f()
     } catch {}
   }
+  for (const id of opprettet.aktiviteter) await prov(() => payload.delete({ collection: 'aktiviteter', id, overrideAccess: true }))
+  for (const id of opprettet.users) await prov(() => payload.delete({ collection: 'users', id, overrideAccess: true }))
+  for (const id of opprettet.grupper) await prov(() => payload.delete({ collection: 'grupper', id, overrideAccess: true }))
+  await prov(() => payload.delete({ collection: 'media', id: mediaId, overrideAccess: true }))
+  if (!POSTGRES) for (const ende of ['', '-shm', '-wal', '-journal']) await prov(async () => fs.rmSync(DB_FIL + ende, { force: true }))
 })
-
 async function lag(suffiks: string) {
   const person = await payload.create({
     collection: 'users',
-    data: { navn: `P ${suffiks}`, email: `p-${suffiks}@integritet.test`, password: 'test-passord-12345', globalRolle: 'member' },
+    data: { navn: `P ${suffiks}`, email: `p-${suffiks}-${KJORING}@integritet.test`, password: 'test-passord-12345', globalRolle: 'member' },
     overrideAccess: true,
   })
   const gruppe = await payload.create({
@@ -69,6 +80,9 @@ async function lag(suffiks: string) {
     data: { oppgave: oppgave.id, person: person.id, svar: 'confirmed' },
     overrideAccess: true,
   })
+  opprettet.users.push(person.id)
+  opprettet.grupper.push(gruppe.id)
+  opprettet.aktiviteter.push(aktivitet.id)
   return { person, gruppe, aktivitet, oppgave, tildeling }
 }
 

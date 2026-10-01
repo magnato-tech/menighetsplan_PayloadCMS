@@ -132,10 +132,6 @@ beforeAll(async () => {
   const { getPayload } = await import('payload')
   const config = (await import('@/payload.config')).default
   payload = await getPayload({ config: await config })
-  if (POSTGRES) {
-    // Bygg/oppdater tabellene med migrasjonene, som i drift. Tester dermed også selve migrasjonene.
-    await (payload.db as unknown as { migrate: () => Promise<void> }).migrate()
-  }
   medlem = (await import('@/lib/handlinger')) as unknown as Mod
   admin = (await import('@/lib/adminHandlinger')) as unknown as Admin
   leder = (await import('@/lib/lederHandlinger')) as unknown as Leder

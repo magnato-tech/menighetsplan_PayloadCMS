@@ -6,7 +6,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['tests/**/*.test.ts'],
-    setupFiles: ['dotenv/config'],
+    setupFiles: ['dotenv/config', './tests/setup-db.ts'],
     testTimeout: 30000,
   },
 })
