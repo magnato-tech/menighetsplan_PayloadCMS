@@ -1,10 +1,12 @@
 import type { GlobalConfig } from 'payload'
+import { kunAdmin } from '@/lib/tilgang'
 
 export const Forsideinnstillinger: GlobalConfig = {
   slug: 'forsideinnstillinger',
   label: 'Forsideinnstillinger',
   access: {
     read: () => true,
+    update: kunAdmin,
   },
   fields: [
     {

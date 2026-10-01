@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { innlogget, kunAdmin } from '@/lib/tilgang'
 
 export const Tildelinger: CollectionConfig = {
   slug: 'tildelinger',
@@ -9,7 +10,10 @@ export const Tildelinger: CollectionConfig = {
     group: 'Program',
   },
   access: {
-    read: () => true,
+    read: innlogget,
+    create: kunAdmin,
+    update: kunAdmin,
+    delete: kunAdmin,
   },
   fields: [
     {

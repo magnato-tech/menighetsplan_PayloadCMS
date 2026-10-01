@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { innlogget, kunAdmin } from '@/lib/tilgang'
 import { foerOppgaveSlettes } from '@/lib/kaskade'
 
 export const Oppgaver: CollectionConfig = {
@@ -10,7 +11,10 @@ export const Oppgaver: CollectionConfig = {
     group: 'Program',
   },
   access: {
-    read: () => true,
+    read: innlogget,
+    create: kunAdmin,
+    update: kunAdmin,
+    delete: kunAdmin,
   },
   hooks: {
     beforeDelete: [foerOppgaveSlettes],

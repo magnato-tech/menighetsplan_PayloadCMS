@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { kunAdmin } from '@/lib/tilgang'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 
 export const Sider: CollectionConfig = {
@@ -18,6 +19,9 @@ export const Sider: CollectionConfig = {
       if (req.user) return true
       return { _status: { equals: 'published' } }
     },
+    create: kunAdmin,
+    update: kunAdmin,
+    delete: kunAdmin,
   },
   fields: [
     {

@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { kunAdmin, offentligEllerInnlogget } from '@/lib/tilgang'
 import { foerAktivitetSlettes } from '@/lib/kaskade'
 
 export const Aktiviteter: CollectionConfig = {
@@ -11,7 +12,10 @@ export const Aktiviteter: CollectionConfig = {
   },
   defaultSort: 'start',
   access: {
-    read: () => true,
+    read: offentligEllerInnlogget,
+    create: kunAdmin,
+    update: kunAdmin,
+    delete: kunAdmin,
   },
   hooks: {
     beforeDelete: [foerAktivitetSlettes],

@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { innlogget, kunAdmin } from '@/lib/tilgang'
 
 export const Oppmoter: CollectionConfig = {
   slug: 'oppmoter',
@@ -9,7 +10,10 @@ export const Oppmoter: CollectionConfig = {
     group: 'Kommunikasjon',
   },
   access: {
-    read: () => true,
+    read: innlogget,
+    create: kunAdmin,
+    update: kunAdmin,
+    delete: kunAdmin,
   },
   fields: [
     {

@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { kunAdmin } from '@/lib/tilgang'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
@@ -13,6 +14,9 @@ export const Media: CollectionConfig = {
   },
   access: {
     read: () => true,
+    create: kunAdmin,
+    update: kunAdmin,
+    delete: kunAdmin,
   },
   fields: [
     {

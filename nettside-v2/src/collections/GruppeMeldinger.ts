@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { kunAdmin, lesGruppemeldinger } from '@/lib/tilgang'
 
 export const GruppeMeldinger: CollectionConfig = {
   slug: 'gruppemeldinger',
@@ -10,7 +11,10 @@ export const GruppeMeldinger: CollectionConfig = {
   },
   defaultSort: '-createdAt',
   access: {
-    read: () => true,
+    read: lesGruppemeldinger,
+    create: kunAdmin,
+    update: kunAdmin,
+    delete: kunAdmin,
   },
   fields: [
     {

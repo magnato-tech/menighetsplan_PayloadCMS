@@ -24,11 +24,20 @@ Fungerer og er verifisert å kjøre fra scratch (installere, seede, bygge, start
 
 Kjente svakheter, ikke rettet:
 - Ingen ekte innlogging. `/min-side` bruker `?som=` og er åpen for alle. `/logg-inn` er en plassholder.
-- Alle samlinger har `read: () => true`.
+- (Rettet 1. okt) API-tilgang er strammet inn (`nettside-v2/src/lib/tilgang.ts`): uinnlogget ser bare offentlige arrangementer, lese krever innlogging, endre krever admin, gruppechat leses bare av gruppens medlemmer, brukere ser bare seg selv, og bare admin kommer inn i `/admin`. Testet i `tests/int/tilgang.test.ts`.
 - `handlinger.ts` tar `personId` fra skjemaet, ikke fra innloggingen. Hvem som helst kan handle på vegne av andre.
 - `taOppgave` setter oppgaven til bekreftet etter én tildeling, selv om flere trengs. `statusForAktivitet` viser «Forfall» for alltid etter en tilbaketrekking.
 - (Rettet 1. okt) `npm run build` bruker nå `next build`.
 
+## Plan (produksjonssjef, 1. okt)
+
+1. **Sikkerhet i API/admin:** gjort (se over).
+2. **Ekte innlogging:** e-post/passord via Payload; «Vis som» erstattes av innlogget bruker; ingen kan handle på vegne av andre. Slås på med `KREV_INNLOGGING=true` så demoen ikke låses.
+3. **Neon-test:** `npm run test:neon` i `nettside-v2/` (PO kjører, adressen limes inn skjult). Ikke kjørt vellykket ennå.
+4. **E-postvarsling** (forespørsel, forfall, glemt passord): krever e-posttjeneste, vilkår må verifiseres først.
+5. **Resten av admin:** personer, grupper (medlemmer, møteplan), innstillinger.
+6. **Aktuelt** på forsiden fylles av arrangementer; utseende (marg, «1 medlemmer»).
+7. **Lansering:** sjekkliste (innstillinger, sikkerhetskopi, personvern) før ekte data.
 ## Arbeidsregler
 
 1. Bruk bare mockdata. **Ingen ekte medlemsdata** før innlogging og tilgangsregler er på plass (menighetstilhørighet er særlig kategori personopplysninger, GDPR art. 9).
