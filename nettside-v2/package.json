@@ -18,7 +18,8 @@
     "seed": "cross-env NODE_OPTIONS=--no-deprecation tsx src/seed/index.ts",
     "test": "cross-env NODE_OPTIONS=--no-deprecation vitest run",
     "test:unit": "cross-env NODE_OPTIONS=--no-deprecation vitest run tests/unit",
-    "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run tests/int"
+    "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run tests/int",
+    "test:neon": "powershell -ExecutionPolicy Bypass -File scripts/test-neon.ps1"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "3.90.2",

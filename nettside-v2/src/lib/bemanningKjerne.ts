@@ -1,6 +1,7 @@
 import type { Payload } from 'payload'
 import { bemanningForOppgave, erLederIGruppe, erMedlemIGruppe, relId } from '@/lib/bemanning'
 import { oppdaterOppgaveStatus } from '@/lib/oppgaveStatus'
+import { skrivSystemmelding } from '@/lib/systemmelding'
 
 export type Resultat = { ok: true; melding: string } | { ok: false; melding: string }
 
@@ -15,6 +16,8 @@ export async function settTildeling(
   oppgaveId: number,
   personId: number,
   svar: 'pending' | 'confirmed',
+  /** Hvem som utfører handlingen (admin, leder eller personen selv). Brukes i systemmeldingen. */
+  aktorId: number = personId,
 ): Promise<Resultat> {
   const oppgave = await payload.findByID({ collection: 'oppgaver', id: oppgaveId, depth: 0, overrideAccess: true })
   if (oppgave.status === 'cancelled') return { ok: false, melding: 'Oppgaven er avlyst.' }
@@ -44,6 +47,12 @@ export async function settTildeling(
     await payload.create({ collection: 'tildelinger', data: { oppgave: oppgaveId, person: personId, svar }, overrideAccess: true })
   }
   await oppdaterOppgaveStatus(payload, oppgaveId)
+  await skrivSystemmelding(payload, {
+    oppgaveId,
+    personId,
+    aktorId,
+    hendelse: svar === 'pending' ? 'forespurt' : aktorId === personId ? 'tok' : 'tildelt',
+  })
   return {
     ok: true,
     melding: svar === 'confirmed' ? 'Personen står som bekreftet på oppgaven.' : 'Forespørselen er sendt. Personen svarer på Min side.',
@@ -62,6 +71,7 @@ export async function meldForfallKjerne(payload: Payload, oppgaveId: number, per
   if (docs.length === 0) return { ok: false, melding: 'Personen er ikke bekreftet på denne oppgaven.' }
   for (const t of docs) await payload.update({ collection: 'tildelinger', id: t.id, data: { svar: 'withdrawn' }, overrideAccess: true })
   await oppdaterOppgaveStatus(payload, oppgaveId)
+  await skrivSystemmelding(payload, { oppgaveId, personId, aktorId: personId, hendelse: 'forfall' })
   return { ok: true, melding: 'Forfall er meldt. Gruppen og gruppelederen kan se at oppgaven trenger noen.' }
 }
 
@@ -77,13 +87,19 @@ export async function svarForesporselKjerne(
   if (t.svar !== 'pending') return { ok: false, melding: 'Forespørselen er allerede besvart.' }
   await payload.update({ collection: 'tildelinger', id: tildelingId, data: { svar }, overrideAccess: true })
   const oppgaveId = relId(t.oppgave)
-  if (oppgaveId) await oppdaterOppgaveStatus(payload, oppgaveId)
+  if (oppgaveId) {
+    await oppdaterOppgaveStatus(payload, oppgaveId)
+    await skrivSystemmelding(payload, { oppgaveId, personId, aktorId: personId, hendelse: svar === 'confirmed' ? 'ja' : 'nei' })
+  }
   return { ok: true, melding: svar === 'confirmed' ? 'Du har tatt oppgaven.' : 'Du har avslått oppgaven.' }
 }
 
-export async function fjernTildelingKjerne(payload: Payload, tildelingId: number, oppgaveId: number) {
+export async function fjernTildelingKjerne(payload: Payload, tildelingId: number, oppgaveId: number, aktorId?: number) {
+  const t = await payload.findByID({ collection: 'tildelinger', id: tildelingId, depth: 0, overrideAccess: true }).catch(() => null)
   await payload.delete({ collection: 'tildelinger', id: tildelingId, overrideAccess: true })
   await oppdaterOppgaveStatus(payload, oppgaveId)
+  const personId = t ? relId(t.person) : undefined
+  if (personId && aktorId) await skrivSystemmelding(payload, { oppgaveId, personId, aktorId, hendelse: 'fjernet' })
 }
 
 /**

@@ -773,3 +773,10 @@ body {
 .oppgavekort-person p { margin: 0.1rem 0 0; }
 .oppgavekort-person-hoyre { display: inline-flex; align-items: center; gap: 0.5rem; }
 .oppgavekort-knapper { display: flex; gap: 0.5rem; }
+
+/* ---------- Grupperom ---------- */
+.meldingsliste { display: flex; flex-direction: column; gap: 0.5rem; margin: 0.8rem 0; }
+.melding-system { align-self: center; max-width: 92%; background: #eef2fb; border: 1px dashed #c3cdee; border-radius: 10px; padding: 0.4rem 0.8rem; text-align: center; color: #2f3f9e; }
+.melding-system .melding-innhold { margin: 0; font-size: 0.9rem; }
+.melding-system .melding-tid { font-size: 0.72rem; color: #6b7780; }
+.adm-teller-noytral { background: #e6e9ec; color: #3f4a52; }

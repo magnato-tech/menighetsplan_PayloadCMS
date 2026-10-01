@@ -129,30 +129,30 @@ export async function opprettOppgave(formData: FormData) {
 
 /** Tildel en person direkte: admin har allerede avtalt det muntlig, så personen står som bekreftet. */
 export async function tildelPerson(formData: FormData) {
-  const { payload } = await krevAdmin()
+  const { payload, user } = await krevAdmin()
   const aktivitetId = tall(formData, 'aktivitetId')
   const oppgaveId = tall(formData, 'oppgaveId')
   const personId = tall(formData, 'personId')
   if (!oppgaveId || !personId) throw new Error('Velg en person.')
-  const r = await settTildeling(payload, oppgaveId, personId, 'confirmed')
+  const r = await settTildeling(payload, oppgaveId, personId, 'confirmed', user.id)
   tilArrangement(formData, aktivitetId, r.melding)
 }
 
 /** Forespør en person om å ta oppgaven: lager en tildeling som venter på svar. */
 export async function foresporPerson(formData: FormData) {
-  const { payload } = await krevAdmin()
+  const { payload, user } = await krevAdmin()
   const aktivitetId = tall(formData, 'aktivitetId')
   const oppgaveId = tall(formData, 'oppgaveId')
   const personId = tall(formData, 'personId')
   if (!oppgaveId || !personId) throw new Error('Velg en person.')
-  const r = await settTildeling(payload, oppgaveId, personId, 'pending')
+  const r = await settTildeling(payload, oppgaveId, personId, 'pending', user.id)
   tilArrangement(formData, aktivitetId, r.melding)
 }
 
 export async function fjernTildeling(formData: FormData) {
-  const { payload } = await krevAdmin()
+  const { payload, user } = await krevAdmin()
   const aktivitetId = tall(formData, 'aktivitetId')
-  await fjernTildelingKjerne(payload, tall(formData, 'tildelingId'), tall(formData, 'oppgaveId'))
+  await fjernTildelingKjerne(payload, tall(formData, 'tildelingId'), tall(formData, 'oppgaveId'), user.id)
   tilArrangement(formData, aktivitetId, 'Personen er fjernet fra oppgaven.')
 }
 /** Rediger oppgave og bemanning: rolle, tjenestegruppe, antall personer og instruks. Statusen beregnes på nytt. */

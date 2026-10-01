@@ -13,12 +13,20 @@ import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import type { Payload } from 'payload'
 import type { Grupper, Oppgaver, Tildelinger, User } from '@/payload-types'
 
+// Mot Neon (Postgres): sett TEST_DATABASE_URL (scripts/test-neon.ps1 gjør det). Ellers brukes en midlertidig SQLite-fil.
+const POSTGRES = process.env.TEST_DATABASE_URL && /^postgres(ql)?:\/\//.test(process.env.TEST_DATABASE_URL) ? process.env.TEST_DATABASE_URL : ''
 const DB_FIL = path.resolve(process.cwd(), 'data', 'test-flyt.db')
-process.env.SQLITE_URL = `file:${DB_FIL.replace(/\\/g, '/')}`
-process.env.DATABASE_URL = ''
-fs.mkdirSync(path.dirname(DB_FIL), { recursive: true })
-for (const ende of ['', '-shm', '-wal', '-journal']) fs.rmSync(DB_FIL + ende, { force: true })
-
+if (POSTGRES) {
+  process.env.DATABASE_URL = POSTGRES
+  delete process.env.SQLITE_URL
+} else {
+  process.env.SQLITE_URL = `file:${DB_FIL.replace(/\\/g, '/')}`
+  process.env.DATABASE_URL = ''
+  fs.mkdirSync(path.dirname(DB_FIL), { recursive: true })
+  for (const ende of ['', '-shm', '-wal', '-journal']) fs.rmSync(DB_FIL + ende, { force: true })
+}
+/** Unik for hver kjøring, så testdata ikke kolliderer med mockdata eller tidligere kjøringer. */
+const KJORING = Date.now().toString(36)
 let erAdmin = true
 let payload: Payload
 
@@ -70,6 +78,7 @@ type Mod = {
   taOppgave: (fd: FormData) => Promise<void>
   meldForfall: (fd: FormData) => Promise<void>
   svarTildeling: (fd: FormData) => Promise<void>
+  sendMelding: (fd: FormData) => Promise<void>
 }
 type Admin = {
   tildelPerson: (fd: FormData) => Promise<void>
@@ -98,16 +107,35 @@ let B: Bem
 let D: Dek
 
 async function hent() {
-  const { docs: oppgaver } = await payload.find({ collection: 'oppgaver', limit: 500, depth: 0, overrideAccess: true })
-  const { docs: tildelinger } = await payload.find({ collection: 'tildelinger', limit: 500, depth: 0, overrideAccess: true })
-  const { docs: grupper } = await payload.find({ collection: 'grupper', limit: 100, depth: 0, overrideAccess: true })
+  // Bare testens egne data (mockdata i databasen røres ikke).
+  const { docs: oppgaver } = await payload.find({
+    collection: 'oppgaver',
+    where: { aktivitet: { equals: aktivitetId } },
+    limit: 1000,
+    depth: 0,
+    overrideAccess: true,
+  })
+  const ider = oppgaver.map((o) => o.id)
+  const { docs: tildelinger } = ider.length
+    ? await payload.find({ collection: 'tildelinger', where: { oppgave: { in: ider } }, limit: 3000, depth: 0, overrideAccess: true })
+    : { docs: [] as Tildelinger[] }
+  const { docs: grupper } = await payload.find({
+    collection: 'grupper',
+    where: { id: { in: [lyd.id, kaffe.id] } },
+    limit: 10,
+    depth: 0,
+    overrideAccess: true,
+  })
   return { oppgaver, tildelinger, grupper }
 }
-
 beforeAll(async () => {
   const { getPayload } = await import('payload')
   const config = (await import('@/payload.config')).default
   payload = await getPayload({ config: await config })
+  if (POSTGRES) {
+    // Bygg/oppdater tabellene med migrasjonene, som i drift. Tester dermed også selve migrasjonene.
+    await (payload.db as unknown as { migrate: () => Promise<void> }).migrate()
+  }
   medlem = (await import('@/lib/handlinger')) as unknown as Mod
   admin = (await import('@/lib/adminHandlinger')) as unknown as Admin
   leder = (await import('@/lib/lederHandlinger')) as unknown as Leder
@@ -120,11 +148,11 @@ beforeAll(async () => {
       data: { navn, email: epost, password: 'test-passord-12345', globalRolle: rolle },
       overrideAccess: true,
     }) as Promise<User>
-  kari = await lagBruker('Kari Test', 'kari@flyt.test', 'admin')
-  ola = await lagBruker('Ola Test', 'ola@flyt.test', 'member')
-  ingrid = await lagBruker('Ingrid Test', 'ingrid@flyt.test', 'member')
-  jonas = await lagBruker('Jonas Test', 'jonas@flyt.test', 'member')
-  per = await lagBruker('Per Utenfor', 'per@flyt.test', 'member')
+  kari = await lagBruker('Kari Test', `kari-${KJORING}@flyt.test`, 'admin')
+  ola = await lagBruker('Ola Test', `ola-${KJORING}@flyt.test`, 'member')
+  ingrid = await lagBruker('Ingrid Test', `ingrid-${KJORING}@flyt.test`, 'member')
+  jonas = await lagBruker('Jonas Test', `jonas-${KJORING}@flyt.test`, 'member')
+  per = await lagBruker('Per Utenfor', `per-${KJORING}@flyt.test`, 'member')
 
   lyd = (await payload.create({
     collection: 'grupper',
@@ -168,15 +196,23 @@ beforeAll(async () => {
 }, 120000)
 
 afterAll(async () => {
-  for (const id of mediaIder) await payload.delete({ collection: 'media', id, overrideAccess: true }).catch(() => {})
-  // Windows kan holde filen låst mens databasen er åpen; opprydning er best mulig (data/ er ikke i git).
-  for (const ende of ['', '-shm', '-wal', '-journal']) {
+  // Rydd bort testens data (rekkefølgen følger relasjonene). Best mulig: feil her skal ikke felle testene.
+  const prov = async (f: () => Promise<unknown>) => {
     try {
-      fs.rmSync(DB_FIL + ende, { force: true })
+      await f()
     } catch {}
   }
+  const gruppeIder = [lyd?.id, kaffe?.id].filter((x): x is number => !!x)
+  if (gruppeIder.length) await prov(() => payload.delete({ collection: 'gruppemeldinger', where: { gruppe: { in: gruppeIder } }, overrideAccess: true }))
+  if (aktivitetId) await prov(() => payload.delete({ collection: 'aktiviteter', id: aktivitetId, overrideAccess: true }))
+  for (const p of [kari, ola, ingrid, jonas, per]) if (p) await prov(() => payload.delete({ collection: 'users', id: p.id, overrideAccess: true }))
+  for (const g of [lyd, kaffe]) if (g) await prov(() => payload.delete({ collection: 'grupper', id: g.id, overrideAccess: true }))
+  for (const id of mediaIder) await prov(() => payload.delete({ collection: 'media', id, overrideAccess: true }))
+  if (!POSTGRES) {
+    // Windows kan holde filen låst mens databasen er åpen; opprydning er best mulig (data/ er ikke i git).
+    for (const ende of ['', '-shm', '-wal', '-journal']) await prov(async () => fs.rmSync(DB_FIL + ende, { force: true }))
+  }
 })
-
 const rad = (o: Oppgaver, t: Tildelinger[]) => B.bemanningForOppgave(o, t)
 const ref = (oppgaver: Oppgaver[], id: number) => oppgaver.find((o) => o.id === id)!
 
@@ -633,7 +669,7 @@ describe('Oppgavekortet henger sammen på tvers av admin, gruppeleder og medlem'
     expect(chipFor(html, 'Kari Test')).toContain('>Forfall<')
     expect(chipFor(html, 'Ingrid Test')).toContain('>Avslått<')
     expect(chipFor(html, 'Jonas Test')).toContain('>Forespurt<')
-    expect(chipFor(html, 'Ola Test')).toContain('ola@flyt.test') // kontaktinfo
+    expect(chipFor(html, 'Ola Test')).toContain(ola.email) // kontaktinfo
     expect(html).toContain('Oppdater behov')
     expect(html).toContain('Lagre instruks')
     expect(html).toContain('Grip inn / Tildel')
@@ -646,7 +682,7 @@ describe('Oppgavekortet henger sammen på tvers av admin, gruppeleder og medlem'
       expect(chipFor(html, navn)).toContain(`>${merke}<`)
       expect(chipFor(adm, navn)).toContain(`>${merke}<`)
     }
-    expect(html).toContain('ola@flyt.test')
+    expect(html).toContain(ola.email)
     expect(html).toContain('Oppdater behov')
     expect(html).toContain('Lagre instruks')
     expect(html).toContain('Grip inn / Tildel')
@@ -664,7 +700,7 @@ describe('Oppgavekortet henger sammen på tvers av admin, gruppeleder og medlem'
     expect(chipFor(html, 'Ingrid Test')).toContain('>Avslått<') // egen status
     expect(chipFor(html, 'Kari Test')).toBe('') // andres forfall skjules
     expect(chipFor(html, 'Jonas Test')).toBe('') // andres forespørsel skjules
-    expect(html).not.toContain('ola@flyt.test') // ingen kontaktinfo
+    expect(html).not.toContain(ola.email) // ingen kontaktinfo
     expect(html).not.toContain('Oppdater behov')
     expect(html).not.toContain('Lagre instruks')
     expect(html).not.toContain('Grip inn')
@@ -730,5 +766,165 @@ describe('Oppgavekortet henger sammen på tvers av admin, gruppeleder og medlem'
       url = (e as Error).message
     }
     expect(url).toContain(`NEXT_REDIRECT:/admin-oversikt/arrangement/${aktivitetId}?melding=`)
+  })
+})
+
+describe('Grupperom: aktiviteter, chat med systemmeldinger, og medlemmer', () => {
+  let romOppgave: Oppgaver
+
+  async function rom(fane: 'aktiviteter' | 'chat' | 'medlemmer', aktor: User, filter?: string) {
+    const { renderToStaticMarkup } = await import('react-dom/server')
+    const komp = (await import('@/components/GrupperomSkjerm')).default
+    return renderToStaticMarkup(await komp({ payload, gruppeId: lyd.id, aktor, fane, filter }))
+  }
+  const systemmeldinger = async (gruppeId: number) =>
+    (
+      await payload.find({
+        collection: 'gruppemeldinger',
+        where: { and: [{ gruppe: { equals: gruppeId } }, { type: { equals: 'system' } }] },
+        limit: 500,
+        depth: 0,
+        overrideAccess: true,
+      })
+    ).docs.map((m) => m.innhold)
+  const antall = (html: string, tekst: string) => html.split(tekst).length - 1
+
+  beforeAll(async () => {
+    romOppgave = (await payload.create({
+      collection: 'oppgaver',
+      data: { aktivitet: aktivitetId, gruppe: lyd.id, tittel: 'Rom-oppgave', antallTrengs: 1, status: 'open' },
+      overrideAccess: true,
+    })) as Oppgaver
+    await kjor(medlem.taOppgave, { oppgaveId: romOppgave.id, personId: jonas.id })
+  })
+
+  it('hver hendelse har gitt en systemmelding i riktig gruppe, med navn og oppgave', async () => {
+    const lydMeldinger = await systemmeldinger(lyd.id)
+    const alle = lydMeldinger.join('\n')
+    expect(alle).toContain('Jonas Test tok oppgaven «Rom-oppgave»') // medlem tar oppgave
+    expect(alle).toMatch(/Ingrid Test meldte forfall på «Lydtekniker»/) // forfall
+    expect(alle).toMatch(/Jonas Test takket ja til «Kamera»/) // svar ja
+    expect(alle).toMatch(/Ingrid Test avslo «Kamera»/) // svar nei
+    expect(alle).toMatch(/Ingrid Test er tildelt «Lydtekniker».* av Kari Test/) // admin tildeler
+    expect(alle).toMatch(/Jonas Test er forespurt til «Kamera».* av Kari Test/) // admin forespør
+    expect(alle).toMatch(/er fjernet fra «Lydtekniker».* av Ola Test/) // leder fjerner
+    expect(alle).toContain('Flyt-gudstjeneste') // arrangementet nevnes
+    // meldingene havner bare i gruppen oppgaven tilhører
+    const kaffeMeldinger = (await systemmeldinger(kaffe.id)).join('\n')
+    expect(kaffeMeldinger).not.toContain('Rom-oppgave')
+    expect(kaffeMeldinger).not.toContain('Lydtekniker')
+  })
+
+  it('alle i gruppen (medlemmer og leder) ser de samme meldingene', async () => {
+    const htmlPer = new Map<string, string>()
+    for (const p of [ola, ingrid, jonas]) htmlPer.set(p.navn, await rom('chat', p))
+    const forventet = (await systemmeldinger(lyd.id)).length
+    for (const [navn, html] of htmlPer) {
+      expect(antall(html, 'data-type="system"'), navn).toBe(forventet)
+      expect(html, navn).toContain('Jonas Test tok oppgaven')
+    }
+  })
+
+  it('en vanlig melding vises for alle i gruppen, og bare medlemmer kan skrive', async () => {
+    await kjor(medlem.sendMelding, { gruppeId: lyd.id, avsenderId: ingrid.id, innhold: 'Hei lydgjengen, husk sjekkliste!' })
+    for (const p of [ola, ingrid, jonas]) {
+      const html = await rom('chat', p)
+      expect(html, p.navn).toContain('Hei lydgjengen, husk sjekkliste!')
+      expect(html, p.navn).toContain('data-type="melding"')
+    }
+    const { docs: for_ } = await payload.find({ collection: 'gruppemeldinger', where: { gruppe: { equals: lyd.id } }, limit: 1000, depth: 0, overrideAccess: true })
+    // utenforstående, tom og for lang melding avvises
+    await kjor(medlem.sendMelding, { gruppeId: lyd.id, avsenderId: per.id, innhold: 'Jeg er ikke med' })
+    await kjor(medlem.sendMelding, { gruppeId: lyd.id, avsenderId: ingrid.id, innhold: '   ' })
+    await kjor(medlem.sendMelding, { gruppeId: lyd.id, avsenderId: ingrid.id, innhold: 'x'.repeat(2001) })
+    const { docs: etter } = await payload.find({ collection: 'gruppemeldinger', where: { gruppe: { equals: lyd.id } }, limit: 1000, depth: 0, overrideAccess: true })
+    expect(etter.length).toBe(for_.length)
+    expect(etter.some((m) => m.innhold === 'Jeg er ikke med')).toBe(false)
+  })
+
+  it('bare gruppens medlemmer har tilgang til grupperommet', async () => {
+    const { kanSeGrupperom } = await import('@/lib/grupperom')
+    const { grupper } = await hent()
+    const g = grupper.find((x) => x.id === lyd.id)!
+    for (const p of [ola, ingrid, jonas]) expect(kanSeGrupperom(g, p.id), p.navn).toBe(true)
+    expect(kanSeGrupperom(g, per.id)).toBe(false)
+    expect(kanSeGrupperom(g, kari.id)).toBe(false)
+  })
+
+  it('forfall oppdaterer gruppechaten hos alle, og når en annen tar over, oppdateres den igjen', async () => {
+    const t = (await hent()).tildelinger.find((x) => x.oppgave === romOppgave.id && x.person === jonas.id && x.svar === 'confirmed')!
+    await kjor(medlem.meldForfall as never, { tildelingId: t.id })
+    for (const p of [ola, ingrid, jonas]) {
+      expect(await rom('chat', p), p.navn).toContain('Jonas Test meldte forfall på «Rom-oppgave»')
+    }
+    await kjor(medlem.taOppgave, { oppgaveId: romOppgave.id, personId: ingrid.id })
+    for (const p of [ola, ingrid, jonas]) {
+      expect(await rom('chat', p), p.navn).toContain('Ingrid Test tok oppgaven «Rom-oppgave»')
+    }
+  })
+
+  it('Aktiviteter: alle arrangementer gruppen deltar i vises med status, også i andres arrangementer', async () => {
+    for (const p of [ola, ingrid, jonas]) {
+      const html = await rom('aktiviteter', p)
+      expect(html, p.navn).toContain('Flyt-gudstjeneste') // kaffe-gruppen eier det, lyd-gruppen har oppgaver
+      expect(html, p.navn).toContain('Oppgavekort →')
+    }
+  })
+
+  it('Aktiviteter: forfall og manglende folk vises for alle i gruppen, så alle kan ta oppgaven', async () => {
+    // lag et forfall: Ingrid melder forfall på Rom-oppgave
+    const t = (await hent()).tildelinger.find((x) => x.oppgave === romOppgave.id && x.person === ingrid.id && x.svar === 'confirmed')!
+    await kjor(medlem.meldForfall as never, { tildelingId: t.id })
+    for (const p of [ola, ingrid, jonas]) {
+      const html = await rom('aktiviteter', p)
+      expect(html, p.navn).toContain('trenger oppfølging')
+      expect(html, p.navn).toContain('data-aktivitet')
+    }
+    // en annen tar over: varselet om denne oppgaven er løst for alle
+    await kjor(medlem.taOppgave, { oppgaveId: romOppgave.id, personId: jonas.id })
+    const { oppgaver, tildelinger, grupper } = await hent()
+    expect(B.bemanningForOppgave(oppgaver.find((o) => o.id === romOppgave.id)!, tildelinger).dekket).toBe(true)
+    expect(B.ledigeOppgaverForPerson(ingrid.id, grupper, oppgaver, tildelinger).map((o) => o.id)).not.toContain(romOppgave.id)
+  })
+
+  it('Aktiviteter: filter «Mine» viser bare arrangementer personen er satt opp på', async () => {
+    const { aktiviteterForGruppe, filtrerGruppeAktiviteter } = await import('@/lib/grupperom')
+    const { docs: akt } = await payload.find({ collection: 'aktiviteter', where: { id: { equals: aktivitetId } }, depth: 0, overrideAccess: true })
+    const { oppgaver, tildelinger } = await hent()
+    const alleJonas = aktiviteterForGruppe(lyd.id, jonas.id, akt, oppgaver, tildelinger)
+    expect(alleJonas).toHaveLength(1)
+    expect(filtrerGruppeAktiviteter(alleJonas, 'mine')).toHaveLength(1) // Jonas har oppgaver her
+    // Per er ikke satt opp på noe i denne gruppen
+    const alleForPer = aktiviteterForGruppe(lyd.id, per.id, akt, oppgaver, tildelinger)
+    expect(filtrerGruppeAktiviteter(alleForPer, 'mine')).toHaveLength(0)
+    expect(filtrerGruppeAktiviteter(alleForPer, 'alle')).toHaveLength(1)
+    // periodefilter
+    expect(filtrerGruppeAktiviteter(alleJonas, 'alle', '2026-11')).toHaveLength(1)
+    expect(filtrerGruppeAktiviteter(alleJonas, 'alle', '2027-01')).toHaveLength(0)
+    const html = await rom('aktiviteter', jonas, 'mine')
+    expect(html).toContain('Flyt-gudstjeneste')
+  })
+
+  it('Aktiviteter: bare gruppelederen får lenke til aktivitetsdetalj', async () => {
+    expect(await rom('aktiviteter', ola)).toContain('Åpne aktivitetsdetalj')
+    expect(await rom('aktiviteter', ingrid)).not.toContain('Åpne aktivitetsdetalj')
+  })
+
+  it('Medlemmer: alle i gruppen vises med rolle, og kontaktinfo bare for leder og admin', async () => {
+    const olaSerDet = await rom('medlemmer', ola)
+    for (const [navn, rolle] of [['Ola Test', 'Leder'], ['Ingrid Test', 'Medlem'], ['Jonas Test', 'Medlem']] as const) {
+      const rad = olaSerDet.split('<div class="oppgavekort-person"').find((d) => d.includes(`>${navn}</strong>`)) ?? ''
+      expect(rad, navn).toContain(`>${rolle}<`)
+    }
+    expect(olaSerDet).not.toContain('Per Utenfor') // ikke medlem
+    expect(olaSerDet).toContain(ingrid.email) // leder ser kontaktinfo
+
+    const ingridSerDet = await rom('medlemmer', ingrid)
+    expect(ingridSerDet).toContain('Jonas Test')
+    expect(ingridSerDet).not.toContain(jonas.email) // vanlig medlem ser ikke kontaktinfo
+    expect(ingridSerDet).toContain('Kontaktinfo vises bare for gruppens leder')
+
+    const adminSerDet = await rom('medlemmer', kari) // Kari er admin
+    expect(adminSerDet).toContain(jonas.email)
   })
 })

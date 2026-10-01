@@ -52,6 +52,8 @@ export default buildConfig({
         pool: {
           connectionString: process.env.DATABASE_URL || '',
         },
+        // PAYLOAD_DB_PUSH=false: bygg tabellene bare med migrasjoner (brukes når testene kjører mot Neon).
+        ...(process.env.PAYLOAD_DB_PUSH === 'false' ? { push: false } : {}),
       })
     : sqliteAdapter({
         client: { url: process.env.SQLITE_URL || 'file:./data/nettside.db' },

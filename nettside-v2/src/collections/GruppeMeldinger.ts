@@ -35,5 +35,15 @@ export const GruppeMeldinger: CollectionConfig = {
       type: 'upload',
       relationTo: 'media',
     },
+    {
+      name: 'type',
+      type: 'select',
+      options: [
+        { label: 'Melding', value: 'melding' },
+        { label: 'Systemmelding', value: 'system' },
+      ],
+      defaultValue: 'melding',
+      admin: { description: 'Systemmeldinger skrives automatisk når noen tar en oppgave, melder forfall osv.' },
+    },
   ],
 }

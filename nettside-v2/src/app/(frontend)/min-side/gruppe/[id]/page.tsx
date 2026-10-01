@@ -1,110 +1,57 @@
+import Link from 'next/link'
+import { notFound } from 'next/navigation'
 import { getPayload } from 'payload'
 import config from '@/payload.config'
-import { sendMelding } from '@/lib/handlinger'
+import { kanSeGrupperom } from '@/lib/grupperom'
+import GrupperomSkjerm from '@/components/GrupperomSkjerm'
 import '../../../styles.css'
 
-function fmtTid(iso: string) {
-  return new Date(iso).toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' })
+export const dynamic = 'force-dynamic'
+
+type Props = {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ som?: string; fane?: string; filter?: string; periode?: string }>
 }
 
-export default async function GruppechatPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ id: string }>
-  searchParams: Promise<{ som?: string }>
-}) {
-  const { id: gruppeId } = await params
-  const { som } = await searchParams
+/**
+ * Grupperom: aktiviteter, gruppechat og medlemmer for en tjenestegruppe. Bare gruppens medlemmer kommer inn.
+ * NB: personen identifiseres av «Vis som» (som), ikke av ekte innlogging ennå, men tilgangen sjekkes på serveren.
+ */
+export default async function GrupperomSide({ params, searchParams }: Props) {
+  const { id } = await params
+  const { som, fane, filter, periode } = await searchParams
+  const gruppeId = Number(id)
+  if (!Number.isInteger(gruppeId)) notFound()
 
-  const payloadConfig = await config
-  const payload = await getPayload({ config: payloadConfig })
-
-  // Hent gruppen
-  const gruppe = await payload.findByID({
-    collection: 'grupper',
-    id: gruppeId,
-    depth: 1,
-  })
-
-  // Hent alle meldinger for denne gruppen
-  const { docs: meldinger } = await payload.find({
-    collection: 'gruppemeldinger',
-    where: { gruppe: { equals: gruppeId } },
-    sort: 'createdAt',
-    limit: 100,
-    depth: 1,
-  })
-
-  // Hent valgt bruker
-  const { docs: brukere } = await payload.find({
-    collection: 'users',
-    limit: 100,
-  })
-  const valgtBruker = som ? brukere.find((b) => String(b.id) === som) : brukere[0]
-
-  if (!gruppe) {
+  const payload = await getPayload({ config: await config })
+  const personId = Number(som)
+  const aktor = Number.isInteger(personId)
+    ? await payload.findByID({ collection: 'users', id: personId, depth: 0, overrideAccess: true }).catch(() => null)
+    : null
+  if (!aktor) {
     return (
-      <div className="min-side">
-        <h1>Gruppe ikke funnet</h1>
-        <a href={`/min-side?som=${som}`}>← Tilbake til Min side</a>
+      <div className="side-innhold adm">
+        <h1>Grupperom</h1>
+        <p>
+          Velg hvem du er på <Link href="/min-side">Min side</Link> først.
+        </p>
       </div>
     )
   }
 
-  if (!valgtBruker) {
+  const gruppe = await payload.findByID({ collection: 'grupper', id: gruppeId, depth: 0, overrideAccess: true }).catch(() => null)
+  if (!gruppe) notFound()
+  if (!kanSeGrupperom(gruppe, aktor.id)) {
     return (
-      <div className="min-side">
-        <h1>Bruker ikke funnet</h1>
-      </div>
-    )
-  }
-
-  return (
-    <div className="min-side">
-      <div className="gruppechat-header">
-        <a href={`/min-side?som=${valgtBruker.id}`}>← Tilbake til Min side</a>
+      <div className="side-innhold adm">
         <h1>{gruppe.navn}</h1>
+        <p>Du er ikke med i denne gruppen, så du har ikke tilgang til grupperommet.</p>
+        <p>
+          <Link href={`/min-side?som=${aktor.id}`}>← Tilbake til Min side</Link>
+        </p>
       </div>
+    )
+  }
 
-      <div className="meldingsliste">
-        {meldinger.length === 0 ? (
-          <p className="dempet">Ingen meldinger ennå i denne gruppen.</p>
-        ) : (
-          meldinger.map((melding) => {
-            const avsenderNavn = typeof melding.avsender === 'object' ? melding.avsender.navn : 'Ukjent'
-            const erEgenMelding = typeof melding.avsender === 'object' 
-              ? melding.avsender.id === valgtBruker.id
-              : melding.avsender === valgtBruker.id
-
-            return (
-              <div 
-                key={melding.id} 
-                className={`melding ${erEgenMelding ? 'melding-egen' : ''}`}
-              >
-                <div className="melding-avsender">{avsenderNavn}</div>
-                <p className="melding-innhold">{melding.innhold}</p>
-                {melding.createdAt && (
-                  <div className="melding-tid">{fmtTid(melding.createdAt)}</div>
-                )}
-              </div>
-            )
-          })
-        )}
-      </div>
-
-      <form action={sendMelding} className="send-melding-skjema">
-        <input type="hidden" name="gruppeId" value={gruppeId} />
-        <input type="hidden" name="avsenderId" value={valgtBruker.id} />
-        <input 
-          type="text" 
-          name="innhold" 
-          placeholder="Skriv en melding..." 
-          required
-          aria-label="Meldingstekst"
-        />
-        <button type="submit">Send</button>
-      </form>
-    </div>
-  )
+  return <GrupperomSkjerm payload={payload} gruppeId={gruppeId} aktor={aktor} fane={fane} filter={filter} periode={periode} />
 }

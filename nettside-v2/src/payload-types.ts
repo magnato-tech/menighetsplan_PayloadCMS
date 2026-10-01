@@ -454,6 +454,10 @@ export interface Gruppemeldinger {
   avsender: number | User;
   innhold: string;
   bilde?: (number | null) | Media;
+  /**
+   * Systemmeldinger skrives automatisk når noen tar en oppgave, melder forfall osv.
+   */
+  type?: ('melding' | 'system') | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -806,6 +810,7 @@ export interface GruppemeldingerSelect<T extends boolean = true> {
   avsender?: T;
   innhold?: T;
   bilde?: T;
+  type?: T;
   updatedAt?: T;
   createdAt?: T;
 }

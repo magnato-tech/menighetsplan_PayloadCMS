@@ -9,6 +9,7 @@ Nettside, «Min side» og admin for Lillesand Misjonskirke, bygget med **Next.js
 - **Min side:** `/min-side` med innkallinger (Kommer / Kan ikke), oppgaver, forfall-melding og gruppesider med chat. Faner for medlem, gruppeleder og admin.
 - **Admin:** Payloads adminpanel på `/admin`, med dashboard, utkast/publisering på sider og nyheter, og grupperte samlinger.
 - **Arrangement og bemanning** (`/admin-oversikt`, krever admin-innlogging): liste over arrangementer med status per oppgave, kjøreplan, og et **oppgavekort** per oppgave med samling, tjenestegruppe, bemanningsbehov, instruks og hvem som er forespurt, bekreftet, har avslått eller meldt forfall. Admin kan tildele (bekreftet) eller forespørre (personen svarer), og redigere arrangement og oppgaver.
+- **Grupperom** (`/min-side/gruppe/[id]`): for hver tjenestegruppe, bare for gruppens medlemmer. Faner: **Aktiviteter** (alle arrangementer gruppen deltar i, med filter «Mine» og «Forfall/Mangler» og periode), **Gruppechat** (meldinger fra alle i gruppen, pluss **systemmeldinger** som skrives automatisk når noen tar en oppgave, melder forfall, svarer ja/nei, blir tildelt, forespurt eller fjernet) og **Medlemmer** (rolle; kontaktinfo bare for leder og admin).
 - **Gruppeleder** (`/min-side/leder/arrangement/…` og `/min-side/oppgave/…`): ser og kan gripe inn på oppgaver i egen tjenestegruppe, og redigere behov og instruks der. **Medlem:** ser det som angår en selv, tar ledige oppgaver i egen gruppe, svarer ja/nei på forespørsler og melder forfall.
 
 ## Start

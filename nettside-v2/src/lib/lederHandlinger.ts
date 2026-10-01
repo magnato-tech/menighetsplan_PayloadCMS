@@ -39,7 +39,7 @@ async function kjor(formData: FormData, svar: 'pending' | 'confirmed') {
   const rett = await sjekkLederRett(payload, lederId, oppgaveId, personId)
   if (!rett.ok) tilbake(formData, aktivitetId, lederId, rett.melding)
 
-  const r = await settTildeling(payload, oppgaveId, personId, svar)
+  const r = await settTildeling(payload, oppgaveId, personId, svar, lederId)
   tilbake(formData, aktivitetId, lederId, r.melding)
 }
 
@@ -65,7 +65,7 @@ export async function lederFjern(formData: FormData) {
   const rett = await sjekkLederRett(payload, lederId, oppgaveId)
   if (!rett.ok) tilbake(formData, aktivitetId, lederId, rett.melding)
 
-  await fjernTildelingKjerne(payload, tildelingId, oppgaveId)
+  await fjernTildelingKjerne(payload, tildelingId, oppgaveId, lederId)
   tilbake(formData, aktivitetId, lederId, 'Personen er fjernet fra oppgaven.')
 }
 

@@ -95,25 +95,24 @@ export async function svarTildeling(formData: FormData) {
   revalidatePath('/min-side')
   revalidatePath('/admin-oversikt')
 }
+/**
+ * Send en melding i gruppechaten. Bare gruppens medlemmer kan skrive i gruppen, og meldingen vises for alle i gruppen.
+ * NB: avsenderen identifiseres av «Vis som» ikke av ekte innlogging ennå, men medlemskap sjekkes på serveren.
+ */
 export async function sendMelding(formData: FormData) {
   const gruppeId = Number(formData.get('gruppeId'))
   const avsenderId = Number(formData.get('avsenderId'))
-  const innhold = formData.get('innhold') as string
+  const innhold = typeof formData.get('innhold') === 'string' ? String(formData.get('innhold')).trim() : ''
+  if (!gruppeId || !avsenderId || !innhold || innhold.length > 2000) return
 
-  if (!innhold || !innhold.trim()) return
+  const payload = await getPayload({ config: await config })
+  const gruppe = await payload.findByID({ collection: 'grupper', id: gruppeId, depth: 0, overrideAccess: true }).catch(() => null)
+  if (!gruppe || !erMedlemIGruppe(gruppe, avsenderId)) return
 
-  const payloadConfig = await config
-  const payload = await getPayload({ config: payloadConfig })
-
-  // Opprett en ny Gruppemelding
   await payload.create({
     collection: 'gruppemeldinger',
-    data: {
-      gruppe: gruppeId,
-      avsender: avsenderId,
-      innhold: innhold.trim(),
-    },
+    data: { gruppe: gruppeId, avsender: avsenderId, innhold, type: 'melding' },
+    overrideAccess: true,
   })
-
   revalidatePath(`/min-side/gruppe/${gruppeId}`)
 }
