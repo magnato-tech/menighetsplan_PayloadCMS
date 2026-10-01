@@ -32,7 +32,7 @@ Kjente svakheter, ikke rettet:
 ## Plan (produksjonssjef, 1. okt)
 
 1. **Sikkerhet i API/admin:** gjort (se over).
-2. **Ekte innlogging:** e-post/passord via Payload; «Vis som» erstattes av innlogget bruker; ingen kan handle på vegne av andre. Slås på med `KREV_INNLOGGING=true` så demoen ikke låses.
+2. **Demomodus** (`DEMO_MODUS=true`, bygget 1. okt): hvem som helst velger rolle uten passord. Av = ingen demo-adgang. **Ekte innlogging** er neste: e-post/passord via Payload; «Vis som» erstattes av innlogget bruker; ingen kan handle på vegne av andre.
 3. **Neon-test:** `npm run test:neon` i `nettside-v2/` (PO kjører, adressen limes inn skjult). Ikke kjørt vellykket ennå.
 4. **E-postvarsling** (forespørsel, forfall, glemt passord): krever e-posttjeneste, vilkår må verifiseres først.
 5. **Resten av admin:** personer, grupper (medlemmer, møteplan), innstillinger.

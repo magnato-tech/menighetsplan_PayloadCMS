@@ -1,5 +1,6 @@
 import React from 'react'
 import Nav from '@/components/Nav'
+import DemoLinje from '@/components/DemoLinje'
 import './styles.css'
 
 export const metadata = {
@@ -13,6 +14,7 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
   return (
     <html lang="no">
       <body>
+        <DemoLinje />
         <Nav />
         <main className="side-innhold">{children}</main>
       </body>

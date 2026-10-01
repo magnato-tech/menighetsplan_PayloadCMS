@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getPayload } from 'payload'
 import config from '@/payload.config'
+import { somMedDemo } from '@/lib/demo'
 import { erLederIGruppe, relId } from '@/lib/bemanning'
 import ArrangementSkjerm from '@/components/admin/ArrangementSkjerm'
 import '../../../../styles.css'
@@ -19,10 +20,11 @@ type Props = {
  */
 export default async function ArrangementLederSide({ params, searchParams }: Props) {
   const { id: idTekst } = await params
-  const { som, visning, gruppe, melding } = await searchParams
+  const { som: somParam, visning, gruppe, melding } = await searchParams
   const id = Number(idTekst)
   if (!Number.isInteger(id)) notFound()
 
+  const som = await somMedDemo(somParam)
   const payload = await getPayload({ config: await config })
   const lederId = Number(som)
   const aktor = Number.isInteger(lederId)

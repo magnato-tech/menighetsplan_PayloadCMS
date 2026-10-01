@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getPayload } from 'payload'
 import config from '@/payload.config'
+import { somMedDemo } from '@/lib/demo'
 import { kanSeGrupperom } from '@/lib/grupperom'
 import GrupperomSkjerm from '@/components/GrupperomSkjerm'
 import '../../../styles.css'
@@ -19,10 +20,11 @@ type Props = {
  */
 export default async function GrupperomSide({ params, searchParams }: Props) {
   const { id } = await params
-  const { som, fane, filter, periode } = await searchParams
+  const { som: somParam, fane, filter, periode } = await searchParams
   const gruppeId = Number(id)
   if (!Number.isInteger(gruppeId)) notFound()
 
+  const som = await somMedDemo(somParam)
   const payload = await getPayload({ config: await config })
   const personId = Number(som)
   const aktor = Number.isInteger(personId)

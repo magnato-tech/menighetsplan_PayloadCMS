@@ -51,6 +51,13 @@ Demobrukerne (admin og gruppeleder) får passordet du satte i `SEED_PASSORD`. Ut
 - Bare mockdata. Siden har fortsatt ikke ekte innlogging, og API-et lar alle lese de fleste samlingene (se «Kjente begrensninger»).
 - Opplasting av bilder over ca. 4,5 MB i admin feiler på Vercel uten klient-opplasting (`clientUploads`), som ikke er satt opp.
 
+## Demomodus (for å vise løsningen før produksjon)
+
+Slå på med miljøvariabelen `DEMO_MODUS=true` (i Vercel: Settings → Environment Variables → Redeploy). Da vises en gul **DEMO**-linje øverst med alle personene, og **hvem som helst kan velge rolle uten passord**: admin (Kari), gruppeleder (Ola) eller medlem (Ingrid, Jonas). Alle funksjoner kan vises: Min side, grupperom, oppgavekort, gruppelederskjerm og admin-oversikten med tildeling og forespørsler.
+
+- **Den tekniske Payload-adminen (`/admin`) er fortsatt låst** (bare admin med passord), og API-et er like lukket som ellers. Demoen gir ikke tilgang til databasen utenfor appens egne skjermer.
+- **Må aldri stå på i produksjon med ekte data.** Slå den av (fjern variabelen, redeploy) før ekte medlemmer slippes inn. Når den er av, ignoreres demovalget helt (testet i `tests/int/demo.test.ts`).
+- Endringer besøkende gjør (tildelinger, meldinger) blir liggende i mockdataene til databasen tilbakestilles.
 ## Oppbygging
 
 | Mappe | Innhold |

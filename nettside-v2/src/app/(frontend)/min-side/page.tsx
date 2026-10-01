@@ -4,6 +4,7 @@ import { filtrerMineGrupper, finnLedetGrupper, finnRolleIGruppe, erGruppeleder a
 import { statusForAktivitet } from '@/lib/aktivitetStatus'
 import { beregnDekning } from '@/lib/dekning'
 import { ledigeOppgaverForPerson, oppfolgingForGrupper } from '@/lib/bemanning'
+import { somMedDemo } from '@/lib/demo'
 import { taOppgave, meldForfall, svarInnkalling, svarTildeling } from '@/lib/handlinger'
 import '../styles.css'
 
@@ -26,7 +27,8 @@ export default async function MinSidePage({
 }: {
   searchParams: Promise<{ som?: string; fane?: string; filter?: string }>
 }) {
-  const { som, fane: faneParam, filter } = await searchParams
+  const { som: somParam, fane: faneParam, filter } = await searchParams
+  const som = await somMedDemo(somParam)
   const payloadConfig = await config
   const payload = await getPayload({ config: payloadConfig })
 
