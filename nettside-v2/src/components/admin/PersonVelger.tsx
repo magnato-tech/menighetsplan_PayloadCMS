@@ -9,13 +9,15 @@ type Props = {
   personer: Person[]
   tildelAction: (formData: FormData) => void | Promise<void>
   foresporAction: (formData: FormData) => void | Promise<void>
+  /** Ekstra skjulte felt som sendes med (f.eks. aktorId for gruppeleder). */
+  ekstraFelt?: Record<string, string | number>
 }
 
 /**
  * Søk og velg person til en oppgave. To valg per person:
  * «Tildel» (avtalt muntlig, står som bekreftet) og «Forespør» (personen svarer i appen).
  */
-export default function PersonVelger({ aktivitetId, oppgaveId, personer, tildelAction, foresporAction }: Props) {
+export default function PersonVelger({ aktivitetId, oppgaveId, personer, tildelAction, foresporAction, ekstraFelt }: Props) {
   const [sok, setSok] = useState('')
   const q = sok.trim().toLowerCase()
   const treff = q ? personer.filter((p) => p.navn.toLowerCase().includes(q) || p.epost.toLowerCase().includes(q)) : personer
@@ -39,6 +41,7 @@ export default function PersonVelger({ aktivitetId, oppgaveId, personer, tildelA
               <input type="hidden" name="aktivitetId" value={aktivitetId} />
               <input type="hidden" name="oppgaveId" value={oppgaveId} />
               <input type="hidden" name="personId" value={p.id} />
+              {ekstraFelt && Object.entries(ekstraFelt).map(([navn, verdi]) => <input key={navn} type="hidden" name={navn} value={verdi} />)}
               <span className="adm-personinfo">
                 <strong>{p.navn}</strong>
                 <small>{p.epost}</small>

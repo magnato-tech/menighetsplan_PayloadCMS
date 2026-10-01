@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { hentAdmin } from '@/lib/adminAuth'
 import { oppdaterOppgaveStatus } from '@/lib/oppgaveStatus'
+import { fjernTildelingKjerne, settTildeling } from '@/lib/bemanningKjerne'
 import { osloTilIso } from '@/lib/tid'
 
 function tekst(formData: FormData, navn: string): string {
@@ -20,13 +21,16 @@ async function krevAdmin() {
   return admin
 }
 
-function tilArrangement(id: number, melding?: string) {
+function tilArrangement(formData: FormData, id: number, melding?: string) {
   revalidatePath(`/admin-oversikt/arrangement/${id}`)
   revalidatePath('/admin-oversikt')
   revalidatePath('/kalender')
   revalidatePath('/')
   const q = melding ? `?melding=${encodeURIComponent(melding)}` : ''
-  redirect(`/admin-oversikt/arrangement/${id}${q}`)
+  // Tilbake dit handlingen ble startet (f.eks. oppgavekortet), ellers til arrangementet.
+  const retur = tekst(formData, 'returTil')
+  const mal = retur.startsWith('/admin-oversikt/') && !retur.includes('?') ? retur : `/admin-oversikt/arrangement/${id}`
+  redirect(`${mal}${q}`)
 }
 
 /** Nytt arrangement. Bildet er påkrevd i datamodellen, så det første bildet i biblioteket brukes som plassholder. */
@@ -54,7 +58,7 @@ export async function opprettArrangement(formData: FormData) {
     },
     overrideAccess: true,
   })
-  tilArrangement(ny.id, 'Arrangementet er opprettet. Bytt gjerne bilde under Aktiviteter i Payload.')
+  tilArrangement(formData, ny.id, 'Arrangementet er opprettet. Bytt gjerne bilde under Aktiviteter i Payload.')
 }
 
 export async function oppdaterArrangement(formData: FormData) {
@@ -79,7 +83,7 @@ export async function oppdaterArrangement(formData: FormData) {
     },
     overrideAccess: true,
   })
-  tilArrangement(id, 'Arrangementet er oppdatert.')
+  tilArrangement(formData, id, 'Arrangementet er oppdatert.')
 }
 
 /** Ny oppgave på arrangementet. Hvis klokkeslett og programtittel er fylt ut, legges den også inn i programmet. */
@@ -120,7 +124,7 @@ export async function opprettOppgave(formData: FormData) {
     ].sort((a, b) => a.klokkeslett.localeCompare(b.klokkeslett))
     await payload.update({ collection: 'aktiviteter', id: aktivitetId, data: { program: nytt }, overrideAccess: true })
   }
-  tilArrangement(aktivitetId, 'Oppgaven er lagt til.')
+  tilArrangement(formData, aktivitetId, 'Oppgaven er lagt til.')
 }
 
 /** Tildel en person direkte: admin har allerede avtalt det muntlig, så personen står som bekreftet. */
@@ -130,27 +134,8 @@ export async function tildelPerson(formData: FormData) {
   const oppgaveId = tall(formData, 'oppgaveId')
   const personId = tall(formData, 'personId')
   if (!oppgaveId || !personId) throw new Error('Velg en person.')
-
-  const { docs } = await payload.find({
-    collection: 'tildelinger',
-    where: { and: [{ oppgave: { equals: oppgaveId } }, { person: { equals: personId } }] },
-    limit: 5,
-    depth: 0,
-    overrideAccess: true,
-  })
-  if (docs.some((t) => t.svar === 'confirmed')) tilArrangement(aktivitetId, 'Personen er allerede bekreftet på denne oppgaven.')
-
-  if (docs[0]) {
-    await payload.update({ collection: 'tildelinger', id: docs[0].id, data: { svar: 'confirmed' }, overrideAccess: true })
-  } else {
-    await payload.create({
-      collection: 'tildelinger',
-      data: { oppgave: oppgaveId, person: personId, svar: 'confirmed' },
-      overrideAccess: true,
-    })
-  }
-  await oppdaterOppgaveStatus(payload, oppgaveId)
-  tilArrangement(aktivitetId, 'Personen er tildelt oppgaven og står som bekreftet.')
+  const r = await settTildeling(payload, oppgaveId, personId, 'confirmed')
+  tilArrangement(formData, aktivitetId, r.melding)
 }
 
 /** Forespør en person om å ta oppgaven: lager en tildeling som venter på svar. */
@@ -160,41 +145,16 @@ export async function foresporPerson(formData: FormData) {
   const oppgaveId = tall(formData, 'oppgaveId')
   const personId = tall(formData, 'personId')
   if (!oppgaveId || !personId) throw new Error('Velg en person.')
-
-  const { docs } = await payload.find({
-    collection: 'tildelinger',
-    where: { and: [{ oppgave: { equals: oppgaveId } }, { person: { equals: personId } }] },
-    limit: 5,
-    depth: 0,
-    overrideAccess: true,
-  })
-  const aktiv = docs.find((t) => t.svar === 'pending' || t.svar === 'confirmed')
-  if (aktiv) tilArrangement(aktivitetId, 'Personen er allerede forespurt eller bekreftet på denne oppgaven.')
-
-  const tidligere = docs[0]
-  if (tidligere) {
-    await payload.update({ collection: 'tildelinger', id: tidligere.id, data: { svar: 'pending' }, overrideAccess: true })
-  } else {
-    await payload.create({
-      collection: 'tildelinger',
-      data: { oppgave: oppgaveId, person: personId, svar: 'pending' },
-      overrideAccess: true,
-    })
-  }
-  await oppdaterOppgaveStatus(payload, oppgaveId)
-  tilArrangement(aktivitetId, 'Forespørselen er sendt. Personen svarer på Min side.')
+  const r = await settTildeling(payload, oppgaveId, personId, 'pending')
+  tilArrangement(formData, aktivitetId, r.melding)
 }
 
 export async function fjernTildeling(formData: FormData) {
   const { payload } = await krevAdmin()
   const aktivitetId = tall(formData, 'aktivitetId')
-  const oppgaveId = tall(formData, 'oppgaveId')
-  const tildelingId = tall(formData, 'tildelingId')
-  await payload.delete({ collection: 'tildelinger', id: tildelingId, overrideAccess: true })
-  await oppdaterOppgaveStatus(payload, oppgaveId)
-  tilArrangement(aktivitetId, 'Personen er fjernet fra oppgaven.')
+  await fjernTildelingKjerne(payload, tall(formData, 'tildelingId'), tall(formData, 'oppgaveId'))
+  tilArrangement(formData, aktivitetId, 'Personen er fjernet fra oppgaven.')
 }
-
 /** Rediger oppgave og bemanning: rolle, tjenestegruppe, antall personer og instruks. Statusen beregnes på nytt. */
 export async function oppdaterOppgave(formData: FormData) {
   const { payload } = await krevAdmin()
@@ -216,7 +176,7 @@ export async function oppdaterOppgave(formData: FormData) {
     overrideAccess: true,
   })
   await oppdaterOppgaveStatus(payload, oppgaveId)
-  tilArrangement(aktivitetId, 'Oppgaven er oppdatert.')
+  tilArrangement(formData, aktivitetId, 'Oppgaven er oppdatert.')
 }
 
 export async function slettOppgave(formData: FormData) {
@@ -244,5 +204,36 @@ export async function slettOppgave(formData: FormData) {
     }))
   await payload.update({ collection: 'aktiviteter', id: aktivitetId, data: { program }, overrideAccess: true })
   await payload.delete({ collection: 'oppgaver', id: oppgaveId, overrideAccess: true })
-  tilArrangement(aktivitetId, 'Oppgaven er slettet.')
+  tilArrangement(formData, aktivitetId, 'Oppgaven er slettet.')
+}
+
+/** Oppdater bemanningsbehovet (antall personer) på en oppgave. Statusen beregnes på nytt. */
+export async function oppdaterBehov(formData: FormData) {
+  const { payload } = await krevAdmin()
+  const aktivitetId = tall(formData, 'aktivitetId')
+  const oppgaveId = tall(formData, 'oppgaveId')
+  if (!oppgaveId) throw new Error('Mangler oppgave.')
+  await payload.update({
+    collection: 'oppgaver',
+    id: oppgaveId,
+    data: { antallTrengs: Math.max(1, tall(formData, 'antall') || 1) },
+    overrideAccess: true,
+  })
+  await oppdaterOppgaveStatus(payload, oppgaveId)
+  tilArrangement(formData, aktivitetId, 'Bemanningsbehovet er oppdatert.')
+}
+
+/** Oppdater instruksen for rollen. */
+export async function oppdaterInstruks(formData: FormData) {
+  const { payload } = await krevAdmin()
+  const aktivitetId = tall(formData, 'aktivitetId')
+  const oppgaveId = tall(formData, 'oppgaveId')
+  if (!oppgaveId) throw new Error('Mangler oppgave.')
+  await payload.update({
+    collection: 'oppgaver',
+    id: oppgaveId,
+    data: { instruksjon: tekst(formData, 'instruksjon') || null },
+    overrideAccess: true,
+  })
+  tilArrangement(formData, aktivitetId, 'Instruksen er lagret.')
 }

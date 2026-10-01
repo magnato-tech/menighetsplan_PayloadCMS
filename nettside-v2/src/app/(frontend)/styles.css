@@ -757,3 +757,19 @@ body {
 .adm-oppgaverad-hoyre { display: inline-flex; align-items: center; gap: 0.6rem; }
 .adm-kortlenke { color: #2f3f9e; font-size: 0.82rem; text-decoration: none; white-space: nowrap; }
 .adm-kortlenke:hover { text-decoration: underline; }
+
+/* Statusmerker på personer i oppgavekortet */
+.adm-merke { font-size: 0.72rem; font-weight: 700; padding: 0 0.4rem; border-radius: 999px; background: rgba(255, 255, 255, 0.7); }
+.adm-strek { text-decoration: line-through; }
+
+/* ---------- Oppgavekort ---------- */
+.oppgavekort section { margin: 0.8rem 0; }
+.oppgavekort-tittel { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.oppgavekort-tittel h1 { margin: 0.2rem 0; }
+.oppgavekort-stor { font-weight: 700; font-size: 1.05rem; margin: 0.2rem 0; }
+.oppgavekort-behov { flex-direction: row; align-items: center; }
+.oppgavekort-behov input { width: 6rem; }
+.oppgavekort-person { display: flex; justify-content: space-between; align-items: center; gap: 0.8rem; padding: 0.55rem 0.7rem; margin: 0.4rem 0; background: #f6f8f9; border: 1px solid #e1e5e8; border-radius: 10px; }
+.oppgavekort-person p { margin: 0.1rem 0 0; }
+.oppgavekort-person-hoyre { display: inline-flex; align-items: center; gap: 0.5rem; }
+.oppgavekort-knapper { display: flex; gap: 0.5rem; }

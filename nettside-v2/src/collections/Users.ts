@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { foerPersonSlettes } from '@/lib/kaskade'
 
 export const Users: CollectionConfig = {
   slug: 'users',
@@ -9,6 +10,9 @@ export const Users: CollectionConfig = {
     group: 'Brukere',
   },
   auth: true,
+  hooks: {
+    beforeDelete: [foerPersonSlettes],
+  },
   fields: [
     {
       name: 'navn',

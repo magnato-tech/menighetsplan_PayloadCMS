@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { foerGruppeSlettes } from '@/lib/kaskade'
 
 export const Grupper: CollectionConfig = {
   slug: 'grupper',
@@ -10,6 +11,9 @@ export const Grupper: CollectionConfig = {
   },
   access: {
     read: () => true,
+  },
+  hooks: {
+    beforeDelete: [foerGruppeSlettes],
   },
   fields: [
     {

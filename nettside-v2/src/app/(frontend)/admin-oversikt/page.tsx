@@ -96,7 +96,7 @@ export default async function AdminOversiktSide() {
                   <span>{o.tittel}</span>
                   <span className="adm-oppgaverad-hoyre">
                     <span className={s.klasse}>{s.tekst}</span>
-                    <Link href={`${url}#oppgave-${o.id}`} className="adm-kortlenke">
+                    <Link href={`/admin-oversikt/oppgave/${o.id}`} className="adm-kortlenke">
                       Kort →
                     </Link>
                   </span>

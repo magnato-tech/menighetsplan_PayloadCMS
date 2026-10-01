@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { foerOppgaveSlettes } from '@/lib/kaskade'
 
 export const Oppgaver: CollectionConfig = {
   slug: 'oppgaver',
@@ -10,6 +11,9 @@ export const Oppgaver: CollectionConfig = {
   },
   access: {
     read: () => true,
+  },
+  hooks: {
+    beforeDelete: [foerOppgaveSlettes],
   },
   fields: [
     {

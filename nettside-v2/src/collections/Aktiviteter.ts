@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { foerAktivitetSlettes } from '@/lib/kaskade'
 
 export const Aktiviteter: CollectionConfig = {
   slug: 'aktiviteter',
@@ -11,6 +12,9 @@ export const Aktiviteter: CollectionConfig = {
   defaultSort: 'start',
   access: {
     read: () => true,
+  },
+  hooks: {
+    beforeDelete: [foerAktivitetSlettes],
   },
   fields: [
     {

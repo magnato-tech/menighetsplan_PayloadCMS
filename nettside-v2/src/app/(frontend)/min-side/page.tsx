@@ -2,6 +2,8 @@ import { getPayload } from 'payload'
 import config from '@/payload.config'
 import { filtrerMineGrupper, finnLedetGrupper, finnRolleIGruppe, erGruppeleder as erGruppelederAvNoen } from '@/lib/gruppeLogikk'
 import { statusForAktivitet } from '@/lib/aktivitetStatus'
+import { beregnDekning } from '@/lib/dekning'
+import { ledigeOppgaverForPerson, oppfolgingForGrupper } from '@/lib/bemanning'
 import { taOppgave, meldForfall, svarInnkalling, svarTildeling } from '@/lib/handlinger'
 import '../styles.css'
 
@@ -66,9 +68,7 @@ export default async function MinSidePage({
   const gruppeId = (rel: unknown) => (typeof rel === 'object' && rel ? (rel as { id: string | number }).id : rel)
 
   // Min side (medlem) - Handlingskort: ledige oppgaver + venter på svar
-  const ledigeOppgaver = alleOppgaver.filter(
-    (o) => mineGrupper.some((g) => g.id === gruppeId(o.gruppe)) && (o.status === 'vacant' || o.status === 'open'),
-  )
+  const ledigeOppgaver = ledigeOppgaverForPerson(valgtBruker.id, alleGrupper, alleOppgaver, alleTildelinger)
   const mineTildelinger = alleTildelinger.filter(
     (t) => gruppeId(t.person) === valgtBruker.id && t.svar === 'pending',
   )
@@ -127,11 +127,25 @@ export default async function MinSidePage({
   })
 
   // Gruppeleder
-  const aktiviteterLedetGrupper = alleAktiviteter.filter((a) => ledetGrupper.some((g) => g.id === gruppeId(a.gruppe)))
-  const aktiviteterMedStatus = aktiviteterLedetGrupper.map((a) => ({
-    akt: a,
-    status: statusForAktivitet(a.id, alleOppgaver, alleTildelinger),
-  }))
+  const ledetGruppeIder = ledetGrupper.map((g) => g.id)
+  const oppgaverILedetGruppe = (aktivitetId: number) =>
+    alleOppgaver.filter((o) => gruppeId(o.aktivitet) === aktivitetId && ledetGruppeIder.includes(gruppeId(o.gruppe) as number))
+  // Arrangementer der lederens gruppe eier arrangementet ELLER har oppgaver (også i andres arrangementer).
+  const aktiviteterLedetGrupper = alleAktiviteter.filter(
+    (a) => ledetGruppeIder.includes(gruppeId(a.gruppe) as number) || oppgaverILedetGruppe(a.id).length > 0,
+  )
+  const aktiviteterMedStatus = aktiviteterLedetGrupper.map((a) => {
+    const oppg = oppgaverILedetGruppe(a.id)
+    const ids = new Set(oppg.map((o) => o.id))
+    return {
+      akt: a,
+      status: beregnDekning(
+        oppg,
+        alleTildelinger.filter((t) => ids.has(gruppeId(t.oppgave) as number)),
+      ),
+    }
+  })
+  const oppfolgingOppgaver = oppfolgingForGrupper(ledetGruppeIder, alleOppgaver, alleTildelinger)
   const tellinger = {
     alle: aktiviteterMedStatus.length,
     forfall: aktiviteterMedStatus.filter((x) => x.status?.klasse === 'tag-forfall').length,
@@ -202,7 +216,7 @@ export default async function MinSidePage({
                       <div key={`ledig-${h.oppgave.id}`} className="handlingskort-item">
                         <div className="handlingskort-item-innhold">
                           <span className="tag tag-trenger-vikar">TRENGER VIKAR</span>
-                          <p className="handlingskort-item-tittel">{h.oppgave.tittel}</p>
+                          <p className="handlingskort-item-tittel"><a href={`/min-side/oppgave/${h.oppgave.id}?som=${valgtBruker.id}`}>{h.oppgave.tittel}</a></p>
                           {h.aktivitet && (
                             <p className="handlingskort-item-aktivitet">
                               {h.aktivitet.tittel} · {fmtDatoLang(h.aktivitet.start)}
@@ -221,7 +235,7 @@ export default async function MinSidePage({
                       <div key={`venter-${h.tildeling.id}`} className="handlingskort-item">
                         <div className="handlingskort-item-innhold">
                           <span className="tag tag-venter-svar">VENTER PÅ SVAR</span>
-                          <p className="handlingskort-item-tittel">{h.oppgave?.tittel}</p>
+                          <p className="handlingskort-item-tittel">{h.oppgave ? <a href={`/min-side/oppgave/${h.oppgave.id}?som=${valgtBruker.id}`}>{h.oppgave.tittel}</a> : null}</p>
                           {h.aktivitet && (
                             <p className="handlingskort-item-aktivitet">
                               {h.aktivitet.tittel} · {fmtDatoLang(h.aktivitet.start)}
@@ -230,6 +244,7 @@ export default async function MinSidePage({
                         </div>
                         <form action={svarTildeling} style={{ margin: 0, display: 'flex', gap: '0.4rem' }}>
                           <input type="hidden" name="tildelingId" value={h.tildeling.id} />
+                          <input type="hidden" name="personId" value={valgtBruker.id} />
                           <button type="submit" name="status" value="confirmed">
                             Ja, jeg tar den
                           </button>
@@ -273,7 +288,7 @@ export default async function MinSidePage({
                   <div key={`bekreftet-${x.tildeling.id}`} className="handlingskort-item">
                     <div className="handlingskort-item-innhold">
                       <span className="tag tag-dekket">BEKREFTET</span>
-                      <p className="handlingskort-item-tittel">{x.oppgave!.tittel}</p>
+                      <p className="handlingskort-item-tittel"><a href={`/min-side/oppgave/${x.oppgave!.id}?som=${valgtBruker.id}`}>{x.oppgave!.tittel}</a></p>
                       {x.aktivitet && (
                         <p className="handlingskort-item-aktivitet">
                           {x.aktivitet.tittel} · {fmtDatoLang(x.aktivitet.start)}
@@ -341,8 +356,8 @@ export default async function MinSidePage({
 
           {trengerOppfolging > 0 && (
             <section className="kort handlingskort">
-              <h2>{trengerOppfolging} oppgaver trenger vikar / oppfølging</h2>
-              <p>I {tellinger.alle} aktiviteter dette semesteret</p>
+              <h2>{oppfolgingOppgaver.length} oppgave{oppfolgingOppgaver.length === 1 ? '' : 'r'} krever oppfølging (forfall/vikar)</h2>
+              <p>I {trengerOppfolging} av {tellinger.alle} arrangementer. Åpne et arrangement for å gripe inn.</p>
             </section>
           )}
 
@@ -380,6 +395,9 @@ export default async function MinSidePage({
                   <span className="dato">{fmtDatoKort(akt.start)}</span>
                   <span className="tittel">{akt.tittel}</span>
                   {status && <span className={`tag ${status.klasse}`}>{status.label}</span>}
+                  <a className="apne-lenke" href={`/min-side/leder/arrangement/${akt.id}?som=${valgtBruker.id}`}>
+                    Åpne ›
+                  </a>
                 </li>
               ))}
             </ul>

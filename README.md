@@ -8,6 +8,8 @@ Nettside, «Min side» og admin for Lillesand Misjonskirke, bygget med **Next.js
 - **Kalender:** `/kalender` med arrangementer gruppert per måned, og en abonnerbar `.ics`-feed (`/kalender.ics`).
 - **Min side:** `/min-side` med innkallinger (Kommer / Kan ikke), oppgaver, forfall-melding og gruppesider med chat. Faner for medlem, gruppeleder og admin.
 - **Admin:** Payloads adminpanel på `/admin`, med dashboard, utkast/publisering på sider og nyheter, og grupperte samlinger.
+- **Arrangement og bemanning** (`/admin-oversikt`, krever admin-innlogging): liste over arrangementer med status per oppgave, kjøreplan, og et **oppgavekort** per oppgave med samling, tjenestegruppe, bemanningsbehov, instruks og hvem som er forespurt, bekreftet, har avslått eller meldt forfall. Admin kan tildele (bekreftet) eller forespørre (personen svarer), og redigere arrangement og oppgaver.
+- **Gruppeleder** (`/min-side/leder/arrangement/…` og `/min-side/oppgave/…`): ser og kan gripe inn på oppgaver i egen tjenestegruppe, og redigere behov og instruks der. **Medlem:** ser det som angår en selv, tar ledige oppgaver i egen gruppe, svarer ja/nei på forespørsler og melder forfall.
 
 ## Start
 
@@ -63,12 +65,12 @@ Demobrukerne (admin og gruppeleder) får passordet du satte i `SEED_PASSORD`. Ut
 
 ## Kjente begrensninger
 
-- **Ingen ekte innlogging.** `/min-side` er en visningsmodell: «Vis som» velger en person, og hvem som helst kan se hvem som helst sin side. `/logg-inn` er en plassholder. **Ikke bruk ekte persondata.**
+- **Ingen ekte innlogging.** `/min-side` er en visningsmodell: «Vis som» velger en person, og hvem som helst kan se hvem som helst sin side. Gruppeleder- og medlemsfunksjonene bruker samme «Vis som», men rettighetene (leder av gruppen, medlem av gruppen) sjekkes på serveren. Admin-oversikten krever ekte Payload-innlogging. `/logg-inn` er en plassholder. **Ikke bruk ekte persondata.**
 - **Alle samlinger er lesbare for alle** via API-et (`read: () => true`).
 - `npm run build` i `nettside-v2/` bygger nå med `next build` (var ødelagt tidligere). `npm start` i roten gjør hele oppstarten.
 - Bilder lagres på lokal disk (`nettside-v2/media/`) lokalt, og i Vercel Blob når `BLOB_READ_WRITE_TOKEN` er satt.
 - Seed-datoene er relative til dagen seeding kjøres.
-- Vitest-testene i `nettside-v2/tests/` er ikke kjørt etter siste omlegging.
+- **Tester:** `npm run test` i `nettside-v2/` (115 tester, grønne 1. okt). `tests/int/flyt.test.ts` kjører de ekte handlingene mot en egen midlertidig SQLite-database og sjekker at medlem, gruppeleder og admin ser det samme. `tests/int/integritet.test.ts` sjekker at sletting i Payload ikke etterlater foreldreløse tildelinger. Ikke kjørt mot Postgres/Neon ennå.
 
 ## Backup og opphav
 
