@@ -3,6 +3,14 @@ import { getPayload } from 'payload'
 import config from '@/payload.config'
 import sharp from 'sharp'
 
+// Passord for de seedede demobrukerne. Lokalt brukes et kjent demopassord.
+// På Vercel (offentlig) kreves SEED_PASSORD (minst 12 tegn), ellers stoppes seeding,
+// slik at en kjent admin-innlogging aldri havner på en offentlig side.
+const SEED_PASSORD = process.env.SEED_PASSORD || 'endre-meg-123'
+if (process.env.VERCEL && (!process.env.SEED_PASSORD || process.env.SEED_PASSORD.length < 12)) {
+  console.error('Avbryter seeding: sett SEED_PASSORD (minst 12 tegn) som miljøvariabel i Vercel.')
+  process.exit(1)
+}
 const placeholderFarger = ['#1f4e5f', '#c8873a', '#2e8b57', '#7a3b8c', '#a33', '#1a6e8e']
 let placeholderTeller = 0
 
@@ -76,7 +84,7 @@ async function main() {
     { email: { equals: 'kari.nordmann@eksempel.no' } },
     {
       email: 'kari.nordmann@eksempel.no',
-      password: 'endre-meg-123',
+      password: SEED_PASSORD,
       navn: 'Kari Nordmann',
       telefon: '912 34 567',
       globalRolle: 'admin',
@@ -88,7 +96,7 @@ async function main() {
     { email: { equals: 'ola.hansen@eksempel.no' } },
     {
       email: 'ola.hansen@eksempel.no',
-      password: 'endre-meg-123',
+      password: SEED_PASSORD,
       navn: 'Ola Hansen',
       telefon: '987 65 432',
       globalRolle: 'member',
@@ -100,7 +108,7 @@ async function main() {
     { email: { equals: 'ingrid.berg@eksempel.no' } },
     {
       email: 'ingrid.berg@eksempel.no',
-      password: 'endre-meg-123',
+      password: SEED_PASSORD,
       navn: 'Ingrid Berg',
       telefon: '456 78 901',
       globalRolle: 'member',
@@ -112,7 +120,7 @@ async function main() {
     { email: { equals: 'jonas.lie@eksempel.no' } },
     {
       email: 'jonas.lie@eksempel.no',
-      password: 'endre-meg-123',
+      password: SEED_PASSORD,
       navn: 'Jonas Lie',
       telefon: '923 45 678',
       globalRolle: 'member',
@@ -667,8 +675,9 @@ async function main() {
   }
 
   console.log('Ferdig.')
-  console.log('Admin (globalRolle=admin): kari.nordmann@eksempel.no / endre-meg-123')
-  console.log('Gruppeleder-eksempel (leder Lyd og bilde + Kirkekaffe): ola.hansen@eksempel.no / endre-meg-123')
+  const visPassord = process.env.SEED_PASSORD ? '(passordet du satte i SEED_PASSORD)' : 'endre-meg-123'
+  console.log('Admin (globalRolle=admin): kari.nordmann@eksempel.no / ' + visPassord)
+  console.log('Gruppeleder-eksempel (leder Lyd og bilde + Kirkekaffe): ola.hansen@eksempel.no / ' + visPassord)
   process.exit(0)
 }
 

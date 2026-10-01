@@ -23,7 +23,30 @@ Innloggingene til admin og et gruppeleder-eksempel skrives ut av seeding i konso
 
 ### Egen database
 
-Sett `DATABASE_URL` til en Postgres-adresse (`postgres://…`) for å bruke Postgres i stedet for SQLite. Sett også `PAYLOAD_SECRET` i ekte drift. Uten den brukes en demo-reserveverdi som ikke skal brukes utenfor demo.
+Sett `DATABASE_URL` til en Postgres-adresse (`postgres://…`) for å bruke Postgres i stedet for SQLite. Postgres bruker migrasjoner (`nettside-v2/src/migrations/`); kjør `npm run payload -- migrate` i `nettside-v2/`. Sett også `PAYLOAD_SECRET` i ekte drift. Uten den brukes en demo-reserveverdi som ikke skal brukes utenfor demo.
+
+## Publisere på Vercel med gratis Neon-database
+
+Slik kan siden ligge på nettet uten abonnement. Du må selv opprette kontoene og legge inn hemmelighetene; ikke legg dem i git eller i chat.
+
+1. **Neon** (<https://neon.com>): lag et gratis prosjekt og kopier tilkoblingsadressen (`postgres://…`). Hvis `payload migrate` feiler under bygg, prøv den «direkte» (ikke-pooled) adressen.
+2. **Vercel** (<https://vercel.com>): *Add New → Project*, velg dette repoet. Sett **Root Directory** til `nettside-v2`. Framework blir Next.js automatisk.
+3. **Blob-lagring (gjør dette FØR første deploy):** i Vercel-prosjektet, *Storage → Create → Blob → Connect to project*. Det legger inn `BLOB_READ_WRITE_TOKEN` selv. Uten den lagres bilder på byggemaskinen og forsvinner.
+4. **Miljøvariabler** (Project Settings → Environment Variables):
+   - `DATABASE_URL`: adressen fra Neon
+   - `PAYLOAD_SECRET`: en lang tilfeldig streng (minst 32 tegn)
+   - `SEED_PASSORD`: et sterkt passord (minst 12 tegn). Brukes ved første fylling av databasen med demodata. Fjern den etterpå.
+5. **Deploy.** Bygget kjører `vercel-build` (`nettside-v2/scripts/vercel-build.mjs`): migrerer databasen, fyller den med demodata hvis den er tom og `SEED_PASSORD` er satt, og bygger appen.
+
+Demobrukerne (admin og gruppeleder) får passordet du satte i `SEED_PASSORD`. Uten det stopper seeding på Vercel, slik at en kjent admin-innlogging aldri havner på en offentlig side.
+
+**Testet:** migrering, seeding og bygg mot en ekte Postgres lokalt, og at alle sider svarer med data derfra. Sperrene (svakt `SEED_PASSORD`, manglende Blob-token) er testet.
+**Ikke testet:** Selve Neon-tilkoblingen, Vercel Blob og selve Vercel-byggingen. Det kan dukke opp småfeil første gang.
+
+**Husk:**
+- Vercel Hobby er etter vilkårene for personlig, ikke-kommersiell bruk. Vurder om en menighetsside passer.
+- Bare mockdata. Siden har fortsatt ikke ekte innlogging, og API-et lar alle lese de fleste samlingene (se «Kjente begrensninger»).
+- Opplasting av bilder over ca. 4,5 MB i admin feiler på Vercel uten klient-opplasting (`clientUploads`), som ikke er satt opp.
 
 ## Oppbygging
 
@@ -42,8 +65,8 @@ Sett `DATABASE_URL` til en Postgres-adresse (`postgres://…`) for å bruke Post
 
 - **Ingen ekte innlogging.** `/min-side` er en visningsmodell: «Vis som» velger en person, og hvem som helst kan se hvem som helst sin side. `/logg-inn` er en plassholder. **Ikke bruk ekte persondata.**
 - **Alle samlinger er lesbare for alle** via API-et (`read: () => true`).
-- `npm run build` i `nettside-v2/` er ødelagt (`payload build` finnes ikke). Bruk `npx next build`. `npm start` i roten gjør dette riktig.
-- Bilder lagres på lokal disk (`nettside-v2/media/`). Det forsvinner ved ny deploy uten persistent disk.
+- `npm run build` i `nettside-v2/` bygger nå med `next build` (var ødelagt tidligere). `npm start` i roten gjør hele oppstarten.
+- Bilder lagres på lokal disk (`nettside-v2/media/`) lokalt, og i Vercel Blob når `BLOB_READ_WRITE_TOKEN` er satt.
 - Seed-datoene er relative til dagen seeding kjøres.
 - Vitest-testene i `nettside-v2/tests/` er ikke kjørt etter siste omlegging.
 

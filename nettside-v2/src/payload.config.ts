@@ -1,5 +1,6 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
 import { sqliteAdapter } from '@payloadcms/db-sqlite'
+import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import fs from 'fs'
 import path from 'path'
@@ -55,5 +56,14 @@ export default buildConfig({
     : sqliteAdapter({
         client: { url: process.env.SQLITE_URL || 'file:./data/nettside.db' },
       }),
+  plugins: [
+    // Bilder i Vercel Blob når BLOB_READ_WRITE_TOKEN er satt (Vercel). Ellers lokal disk (media/).
+    // alwaysInsertFields holder databaseskjemaet likt i alle miljøer.
+    vercelBlobStorage({
+      collections: { media: true },
+      token: process.env.BLOB_READ_WRITE_TOKEN,
+      alwaysInsertFields: true,
+    }),
+  ],
   sharp,
 })

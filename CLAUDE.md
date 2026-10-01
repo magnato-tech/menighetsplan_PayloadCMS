@@ -11,7 +11,8 @@ Product Owner (PO) er Magnar. Claude er produktsjef. PO er ikke utvikler: forkla
 ## Teknikk
 
 - Next.js 16 + Payload 3.90 + React 19, i `nettside-v2/`.
-- Database: lokal SQLite (`nettside-v2/data/nettside.db`) som standard, Postgres hvis `DATABASE_URL` er `postgres://…`. Valget gjøres i `nettside-v2/src/payload.config.ts`.
+- Database: lokal SQLite (`nettside-v2/data/nettside.db`) som standard, Postgres hvis `DATABASE_URL` er `postgres://…` (med migrasjoner i `nettside-v2/src/migrations/`). Valget gjøres i `nettside-v2/src/payload.config.ts`.
+- Vercel: bygget `vercel-build` (`nettside-v2/scripts/vercel-build.mjs`) migrerer, seeder ved tom database og `SEED_PASSORD`, og bygger. Bilder i Vercel Blob når `BLOB_READ_WRITE_TOKEN` er satt. Se «Publisere på Vercel» i `README.md`.
 - Start: `npm start` i roten (`scripts/start-v2.mjs` installerer, seeder, bygger og starter på port 3000).
 - Samlinger: Sider (7 blokktyper, utkast/publisering), Nyheter, Aktiviteter, Grupper, Oppgaver, Tildelinger, Oppmoter, GruppeMeldinger, Media, Users. Global: Forsideinnstillinger.
 - Ren logikk i `nettside-v2/src/lib/`: `aktivitetStatus`, `gruppeLogikk`, `handlinger`, `ical`.
@@ -26,7 +27,7 @@ Kjente svakheter, ikke rettet:
 - Alle samlinger har `read: () => true`.
 - `handlinger.ts` tar `personId` fra skjemaet, ikke fra innloggingen. Hvem som helst kan handle på vegne av andre.
 - `taOppgave` setter oppgaven til bekreftet etter én tildeling, selv om flere trengs. `statusForAktivitet` viser «Forfall» for alltid etter en tilbaketrekking.
-- `npm run build` i `nettside-v2/` er ødelagt. Bruk `npx next build`.
+- (Rettet 1. okt) `npm run build` bruker nå `next build`.
 
 ## Arbeidsregler
 
