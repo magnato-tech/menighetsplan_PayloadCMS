@@ -787,3 +787,5 @@ body {
 .demovalg { padding: 0.15rem 0.7rem; border-radius: 999px; background: #fff; border: 1px solid #e3c66b; color: #5c4300; text-decoration: none; font-weight: 600; }
 .demovalg:hover { background: #fff9e6; }
 .demovalg.aktiv { background: #5c4300; color: #fff; border-color: #5c4300; }
+.demoreset { display: inline; margin: 0; }
+.demoreset button { cursor: pointer; font: inherit; }

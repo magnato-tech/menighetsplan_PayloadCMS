@@ -65,3 +65,9 @@ That's it! The Docker instance will help you get up and running quickly while al
 ## Questions
 
 If you have any issues or questions, reach out to us on [Discord](https://discord.com/invite/payload) or start a [GitHub discussion](https://github.com/payloadcms/payload/discussions).
+
+### Tilbakestilling av demodata
+
+I demomodus (DEMO_MODUS=true) finnes knappen **Tilbakestill demodata** i demolinjen. Den sletter arrangementer, oppgaver, tildelinger, oppmøter og gruppemeldinger og seeder dem på nytt (personer, grupper, sider og bilder beholdes). Maks én gang i minuttet.
+
+Vercel Cron kjører samme tilbakestilling hver natt kl. 02:00 UTC (ercel.json). Sett miljøvariabelen CRON_SECRET (en lang tilfeldig streng) i Vercel, ellers avvises nattjobben. Utenfor demomodus finnes adressen ikke.

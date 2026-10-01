@@ -29,6 +29,11 @@ export default async function DemoLinje() {
             {p.globalRolle === 'admin' ? ' (admin)' : ''}
           </a>
         ))}
+        <form method="post" action="/demo/tilbakestill" className="demoreset">
+          <button type="submit" className="demovalg" title="Setter arrangementer, oppgaver, tildelinger og meldinger tilbake til utgangspunktet">
+            Tilbakestill demodata
+          </button>
+        </form>
         {valgt ? (
           <a href="/demo/bytt?som=0&retur=/" className="demovalg">
             Nullstill
